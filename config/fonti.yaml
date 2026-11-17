@@ -1,0 +1,20 @@
+# Fonti per il modulo temi. Gli URL dei feed vanno verificati in Fase 4.
+news:
+  - {nome: La Stampa Torino, sito: lastampa.it/torino, rss: da_verificare, attiva: true}
+  - {nome: Corriere Torino, sito: torino.corriere.it, rss: da_verificare, attiva: true}
+  - {nome: la Repubblica Torino, sito: torino.repubblica.it, rss: da_verificare, attiva: true}
+  - {nome: TorinoToday, sito: torinotoday.it, rss: da_verificare, attiva: true}
+  - {nome: Torino Oggi, sito: torinoggi.it, rss: da_verificare, attiva: true}
+  - {nome: Quotidiano Piemontese, sito: quotidianopiemontese.it, rss: da_verificare, attiva: true}
+  - {nome: Lo Spiffero, sito: lospiffero.com, rss: da_verificare, attiva: true}
+
+istituzionali:
+  - {nome: Comunicati Città di Torino, sito: comune.torino.it, rss: da_verificare, attiva: true}
+  - {nome: Consigli di circoscrizione, sito: comune.torino.it, rss: da_verificare, attiva: false}
+
+social:   # solo API ufficiali, solo contenuti pubblici, nessun dato sugli autori
+  reddit: {attiva: false, subreddit: [torino]}
+  youtube: {attiva: false, canali: []}
+  bluesky: {attiva: false, query: [torino]}
+
+conservazione_testi_giorni: 30

@@ -1,0 +1,46 @@
+# Dimensioni del panel sintetico del laboratorio messaggi.
+# I pesi per area vengono calcolati in Fase 3 dai dati reali e salvati nella tabella segmento.
+
+circoscrizioni:   # nomi da verificare con i geodati del Comune
+  "1": Centro, Crocetta
+  "2": Santa Rita, Mirafiori Nord, Mirafiori Sud
+  "3": San Paolo, Cenisia, Pozzo Strada, Cit Turin, Borgata Lesna
+  "4": San Donato, Campidoglio, Parella
+  "5": Borgo Vittoria, Madonna di Campagna, Lucento, Vallette
+  "6": Barriera di Milano, Regio Parco, Barca, Bertolla, Falchera, Rebaudengo, Villaretto
+  "7": Aurora, Vanchiglia, Sassi, Madonna del Pilone
+  "8": San Salvario, Cavoretto, Borgo Po, Nizza Millefonti, Lingotto, Filadelfia
+
+fasce_eta: ["18-29", "30-44", "45-64", "65+"]
+
+condizione:
+  - studente
+  - lavoratore dipendente
+  - lavoratore autonomo
+  - pensionato
+  - in cerca di lavoro
+  - casalingo/a
+
+area_di_voto:     # stimata dai risultati 2021 e dalle elezioni successive
+  - centrosinistra
+  - centrodestra
+  - M5S
+  - civici e terzo polo
+  - astensione abituale
+
+# Segmenti composti usati di default (per contenere i costi).
+# Ogni segmento = combinazione di fascia d'età, condizione e area di voto.
+# Ampliare o ridurre dopo le prime simulazioni.
+segmenti_default:
+  - {fascia_eta: "18-29", condizione: studente, area_di_voto: centrosinistra}
+  - {fascia_eta: "30-44", condizione: lavoratore dipendente, area_di_voto: centrosinistra}
+  - {fascia_eta: "30-44", condizione: lavoratore dipendente, area_di_voto: centrodestra}
+  - {fascia_eta: "45-64", condizione: lavoratore autonomo, area_di_voto: centrodestra}
+  - {fascia_eta: "45-64", condizione: lavoratore dipendente, area_di_voto: M5S}
+  - {fascia_eta: "45-64", condizione: lavoratore dipendente, area_di_voto: civici e terzo polo}
+  - {fascia_eta: "65+", condizione: pensionato, area_di_voto: centrosinistra}
+  - {fascia_eta: "65+", condizione: pensionato, area_di_voto: centrodestra}
+  - {fascia_eta: "30-44", condizione: in cerca di lavoro, area_di_voto: astensione abituale}
+  - {fascia_eta: "18-29", condizione: lavoratore dipendente, area_di_voto: astensione abituale}
+
+persone_per_segmento: 10
