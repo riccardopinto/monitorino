@@ -109,3 +109,13 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 - **Calibrazione**: si registrano solo valori pubblicati di sondaggi (fonte, data, metrica, valore), non dati dei rispondenti.
 - **Flusso via chat**: il prompt incollato nella chat contiene proposta, profilo pubblico del candidato, aggregati dell'area e panel sintetico; valgono le stesse cautele sul fornitore della chat indicate per la Fase 4.
 - **Costi**: le simulazioni via API passano da `app/llm/client.py` (tetto mensile e conferma sopra `SOGLIA_CONFERMA_RUN_EUR`); quelle in chat hanno costo registrato zero.
+
+### Fase 7 — Report PDF
+
+- I report (scheda circoscrizione, confronto, bollettino dei temi, simulazione, kit messaggi) contengono solo **dati aggregati** per sezione, circoscrizione o città, e i contenuti approvati dallo staff. Nessun dato su singoli elettori.
+- Il **bollettino dei temi** riporta titoli e link degli articoli di stampa (già pubblici) e, per i social, solo conteggi per tema: nessun testo, autore o link.
+- Il **report di simulazione** porta "Simulazione IA, non è un sondaggio" in copertina, in testata e a piè di ogni pagina, con i limiti del metodo; le frasi di reazione sono indicate come sintetiche.
+- Se nel database ci sono dati di prova, ogni pagina riporta "DATI DI PROVA".
+- **Conservazione**: i PDF sono salvati nella cartella `reports_out/` del server (esclusa da git) e registrati nella tabella `report` con autore e parametri. Durata di conservazione e regole di condivisione fuori dallo staff da definire con il consulente. Un PDF condiviso esce dal controllo dell'applicazione: va trattato come documento interno.
+- **Autore**: finché non c'è il login (Fase 8) è un campo libero dell'anteprima, ricordato solo nel browser di chi lo compila.
+- **Stampa**: i PDF si generano in locale con Chromium headless (Playwright); le mappe sono immagini generate dal server, senza tile esterne, quindi la generazione non invia dati a terzi.

@@ -110,6 +110,7 @@ Le opinioni politiche sono dati di categoria particolare (art. 9 GDPR). Dal 10 o
 ```
 uv run fastapi dev app/main.py        # avvio in sviluppo
 uv run python -m app.ingest.<fonte>   # ingest di una fonte
+uv run playwright install chromium     # una volta: browser per i report PDF
 uv run pytest
 uv run ruff check . && uv run ruff format .
 ```
