@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import aree, demografia, elezioni, stato
+from app.api import aree, demografia, elezioni, stato, temi
 from app.core import db
 from app.core.config import RADICE, impostazioni
 
@@ -53,6 +53,7 @@ def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -
     app.include_router(aree.router)
     app.include_router(elezioni.router)
     app.include_router(demografia.router)
+    app.include_router(temi.router)
     app.mount("/static", StaticFiles(directory=DIR_WEB / "static"), name="static")
 
     @app.get("/", include_in_schema=False)
