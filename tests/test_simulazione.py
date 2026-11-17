@@ -37,10 +37,8 @@ def _imp(soglia=5.0, tetto=100.0):
     )
 
 
-@pytest.fixture
-def con(tmp_path):
-    c = db.connetti(tmp_path / "t.duckdb")
-    db.crea_schema(c)
+def popola(c):
+    """Due circoscrizioni con maggiorenni e pesi per i due segmenti di prova."""
     for codice, nome, adulti in (("3", "San Paolo, Cenisia", 300), ("4", "San Donato", 100)):
         (aid,) = c.execute(
             "INSERT INTO area (tipo, codice, nome) VALUES ('circoscrizione', ?, ?) RETURNING id",
@@ -57,6 +55,13 @@ def con(tmp_path):
                 "INSERT INTO segmento_peso VALUES (?, ?, 2025, 'comunali', ?)",
                 [sid, aid, 0.1 if i == 0 else 0.3],
             )
+
+
+@pytest.fixture
+def con(tmp_path):
+    c = db.connetti(tmp_path / "t.duckdb")
+    db.crea_schema(c)
+    popola(c)
     yield c
     c.close()
 

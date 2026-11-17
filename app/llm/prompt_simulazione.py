@@ -11,6 +11,15 @@ from app.llm.persone import PersonaSintetica
 VERSIONE_METODO = "2026-11-fase5"
 DICITURA = "Simulazione IA, non è un sondaggio"
 EFFETTI = ("allontana", "nessuno", "avvicina")
+# Limiti da riportare in ogni risultato e report (docs/metodo_simulazione.md, punto 10).
+LIMITI = (
+    "I modelli linguistici tendono a risposte moderate e prevedibili.",
+    "Sottostimano l'astensione e conoscono poco la cronaca locale recente.",
+    "I segmenti sono gruppi aggregati, non persone: le persone del panel sono inventate.",
+    "I pesi assumono che voto, età e condizione siano indipendenti dentro ogni circoscrizione.",
+    "Inferenza ecologica: i dati di un'area non descrivono il comportamento dei singoli.",
+    "I segmenti non sono liste di destinatari per annunci (Regolamento UE 2024/900).",
+)
 
 
 def istruzioni() -> str:
