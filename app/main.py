@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import aree, stato
+from app.api import aree, elezioni, stato
 from app.core import db
 from app.core.config import RADICE, impostazioni
 
@@ -35,12 +35,14 @@ def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -
         app.state.db = con
         app.state.mappa_sfondo = sfondo
         app.state.cache_aree = {}
+        app.state.cache_elezioni = {}
         yield
         con.close()
 
     app = FastAPI(title="Monitorino", version=VERSIONE, lifespan=lifespan)
     app.include_router(stato.router)
     app.include_router(aree.router)
+    app.include_router(elezioni.router)
     app.mount("/static", StaticFiles(directory=DIR_WEB / "static"), name="static")
 
     @app.get("/", include_in_schema=False)
