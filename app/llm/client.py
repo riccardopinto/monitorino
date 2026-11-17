@@ -196,17 +196,75 @@ class ClientLLM:
         modello = self.modello(ruolo)
         self._prezzo(modello)  # errore subito se manca il prezzo, prima di spendere
         self.verifica_tetto()
-        try:
+        with _errori_api():
             risposta = self._sdk.messages.create(model=modello, **parametri)
-        except anthropic.AuthenticationError as e:
-            raise ErroreLLM("Chiave API Anthropic mancante o non valida") from e
-        except anthropic.RateLimitError as e:
-            raise ErroreLLM("Limite di richieste API superato, riprovare più tardi") from e
-        except anthropic.BadRequestError as e:
-            raise ErroreLLM(f"Richiesta non valida: {e.message}") from e
-        except anthropic.APIStatusError as e:
-            raise ErroreLLM(f"Errore dell'API Anthropic ({e.status_code})") from e
-        except anthropic.APIConnectionError as e:
-            raise ErroreLLM("API Anthropic non raggiungibile") from e
         self.registra(modulo=modulo, modello=modello, usage=risposta.usage, utente=utente)
         return risposta
+
+    # --- Message Batches API (50% di sconto, risultati entro 24 ore) -------------
+
+    def crea_batch(
+        self,
+        *,
+        ruolo: Ruolo,
+        richieste: list[tuple[str, dict[str, Any]]],
+        costo_previsto_eur: float,
+    ) -> str:
+        """Invia un batch: ``richieste`` = [(custom_id, parametri senza model)].
+
+        Controlla il tetto di spesa sul costo previsto prima di inviare. Restituisce l'id.
+        """
+        modello = self.modello(ruolo)
+        self._prezzo(modello)
+        self.verifica_tetto(costo_previsto_eur)
+        corpo = [{"custom_id": cid, "params": {"model": modello, **p}} for cid, p in richieste]
+        with _errori_api():
+            batch = self._sdk.messages.batches.create(requests=corpo)
+        return batch.id
+
+    def stato_batch(self, batch_id: str) -> str:
+        with _errori_api():
+            return self._sdk.messages.batches.retrieve(batch_id).processing_status
+
+    def risultati_batch(
+        self, batch_id: str, *, modulo: str, ruolo: Ruolo, utente: str | None = None
+    ) -> dict[str, Message | None]:
+        """Risultati di un batch concluso, per custom_id (None se errore o scaduto).
+
+        Registra in uso_llm il costo di ogni richiesta riuscita, con lo sconto batch.
+        """
+        modello = self.modello(ruolo)
+        out: dict[str, Message | None] = {}
+        with _errori_api():
+            for r in self._sdk.messages.batches.results(batch_id):
+                if r.result.type == "succeeded":
+                    msg = r.result.message
+                    self.registra(
+                        modulo=modulo, modello=modello, usage=msg.usage, batch=True, utente=utente
+                    )
+                    out[r.custom_id] = msg
+                else:
+                    out[r.custom_id] = None
+        return out
+
+
+class _errori_api:
+    """Traduce gli errori dell'SDK in ErroreLLM con messaggi in italiano."""
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, tipo, e, tb) -> bool:
+        if e is None:
+            return False
+        if isinstance(e, anthropic.AuthenticationError):
+            raise ErroreLLM("Chiave API Anthropic mancante o non valida") from e
+        if isinstance(e, anthropic.RateLimitError):
+            raise ErroreLLM("Limite di richieste API superato, riprovare più tardi") from e
+        if isinstance(e, anthropic.BadRequestError):
+            raise ErroreLLM(f"Richiesta non valida: {e.message}") from e
+        if isinstance(e, anthropic.APIStatusError):
+            raise ErroreLLM(f"Errore dell'API Anthropic ({e.status_code})") from e
+        if isinstance(e, anthropic.APIConnectionError):
+            raise ErroreLLM("API Anthropic non raggiungibile") from e
+        return False
