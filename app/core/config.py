@@ -38,6 +38,9 @@ class Impostazioni(BaseSettings):
     reddit_client_id: SecretStr | None = None
     reddit_client_secret: SecretStr | None = None
     youtube_api_key: SecretStr | None = None
+    bluesky_handle: str | None = None
+    bluesky_app_password: SecretStr | None = None
+    raccolta_automatica: bool = False
     secret_key: SecretStr | None = None
 
     @field_validator("db_path")

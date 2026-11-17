@@ -1,20 +1,26 @@
-# Fonti per il modulo temi. Gli URL dei feed vanno verificati in Fase 4.
+# Fonti per il modulo temi. Feed verificati il 2026-11-17 (Fase 4).
+# Per le news si salvano titolo, link, data e il sommario del feed (max 300 caratteri):
+# mai il testo integrale degli articoli.
 news:
-  - {nome: La Stampa Torino, sito: lastampa.it/torino, rss: da_verificare, attiva: true}
-  - {nome: Corriere Torino, sito: torino.corriere.it, rss: da_verificare, attiva: true}
-  - {nome: la Repubblica Torino, sito: torino.repubblica.it, rss: da_verificare, attiva: true}
-  - {nome: TorinoToday, sito: torinotoday.it, rss: da_verificare, attiva: true}
-  - {nome: Torino Oggi, sito: torinoggi.it, rss: da_verificare, attiva: true}
-  - {nome: Quotidiano Piemontese, sito: quotidianopiemontese.it, rss: da_verificare, attiva: true}
-  - {nome: Lo Spiffero, sito: lospiffero.com, rss: da_verificare, attiva: true}
+  - {nome: La Stampa Torino, sito: lastampa.it/torino, rss: "https://www.lastampa.it/torino/rss", attiva: true}
+  - {nome: Corriere Torino, sito: torino.corriere.it, rss: "https://xml2.corriereobjects.it/rss/homepage_torino.xml", attiva: true}
+  - {nome: la Repubblica Torino, sito: torino.repubblica.it, rss: "https://torino.repubblica.it/rss/rss2.0.xml", attiva: true}
+  - {nome: TorinoToday, sito: torinotoday.it, rss: "https://www.torinotoday.it/rss", attiva: true}
+  - {nome: Torino Oggi, sito: torinoggi.it, rss: "https://www.torinoggi.it/rss.xml", attiva: true}
+  - {nome: Quotidiano Piemontese, sito: quotidianopiemontese.it, rss: "https://www.quotidianopiemontese.it/feed/", attiva: true}
+  - {nome: Lo Spiffero, sito: lospiffero.com, rss: "https://www.lospiffero.com/rss.xml", attiva: true}
 
 istituzionali:
-  - {nome: Comunicati Città di Torino, sito: comune.torino.it, rss: da_verificare, attiva: true}
-  - {nome: Consigli di circoscrizione, sito: comune.torino.it, rss: da_verificare, attiva: false}
+  # Torino Click è l'agenzia di stampa della Città di Torino (comune.torino.it/rss dà 404).
+  - {nome: Comunicati Città di Torino, sito: torinoclick.it, rss: "https://www.torinoclick.it/feed/", attiva: true}
+  # Nessun feed trovato per gli ordini del giorno dei consigli di circoscrizione.
+  - {nome: Consigli di circoscrizione, sito: comune.torino.it, rss: non_disponibile, attiva: false}
 
-social:   # solo API ufficiali, solo contenuti pubblici, nessun dato sugli autori
-  reddit: {attiva: false, subreddit: [torino]}
-  youtube: {attiva: false, canali: []}
-  bluesky: {attiva: false, query: [torino]}
+# Solo API ufficiali, solo contenuti pubblici. Alla raccolta si scartano autore, ID e link;
+# il testo si cancella dopo conservazione_testi_giorni. Credenziali in .env.
+social:
+  reddit: {attiva: false, subreddit: [torino]}            # REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET
+  youtube: {attiva: false, canali: []}                    # YOUTUBE_API_KEY; id dei canali di informazione locale
+  bluesky: {attiva: false, query: [torino]}               # BLUESKY_HANDLE, BLUESKY_APP_PASSWORD
 
 conservazione_testi_giorni: 30

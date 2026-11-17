@@ -119,6 +119,21 @@ CREATE TABLE IF NOT EXISTS documento (
     sentiment   SMALLINT CHECK (sentiment BETWEEN -2 AND 2),
     scadenza    DATE
 );
+-- Fase 4. Per i social: url sempre NULL, impronta = hash del testo (mai l'ID del post).
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS tipo_fonte VARCHAR;      -- news|istituzionale|social
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS luogo VARCHAR;           -- luogo riconosciuto
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS classificato_da VARCHAR; -- api|chat
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS classificato_il TIMESTAMP;
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS impronta VARCHAR;
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS raccolto_il TIMESTAMP DEFAULT current_timestamp;
+
+-- Dizionario dei luoghi per assegnare i documenti a una circoscrizione (Fase 4).
+CREATE TABLE IF NOT EXISTS luogo (
+    nome            VARCHAR NOT NULL,       -- come si legge nei testi
+    chiave          VARCHAR NOT NULL,       -- nome normalizzato per la ricerca
+    tipo            VARCHAR NOT NULL,       -- via, quartiere, mercato, scuola, impianto, biblioteca
+    circoscrizione  VARCHAR NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS tema_aggregato (
     tema            VARCHAR NOT NULL,
@@ -221,6 +236,7 @@ TABELLE = (
     "totale_ufficiale",
     "demografia",
     "documento",
+    "luogo",
     "tema_aggregato",
     "segmento",
     "segmento_peso",
