@@ -11,6 +11,9 @@ sindaco:
   posizioni_approvate: []       # una voce per posizione, con fonte (programma, intervista, data)
   da_evitare: []
   testi_di_esempio: []          # post o discorsi già pubblicati, per imitarne lo stile
+  # Aree di voto (segmenti.yaml) da cui il candidato può prendere voti: preimpostazione dei
+  # segmenti nel laboratorio messaggi. Indicate dallo staff il 2026-11-17.
+  elettorato_potenziale: [civici e terzo polo, centrosinistra, centrodestra, astensione abituale]
 
 consiglio_comunale:
   - nome: Francesco Aglieri Rinella

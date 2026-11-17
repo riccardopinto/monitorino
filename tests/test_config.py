@@ -21,6 +21,13 @@ def test_modelli_env_example_hanno_prezzi():
     assert modelli <= set(config.prezzi_llm().modelli)
 
 
+def test_elettorato_potenziale_valido():
+    aree = set(config.segmenti().area_di_voto)
+    for _, c in config.elenco_candidati():
+        assert set(c.elettorato_potenziale) <= aree, c.nome
+    assert config.candidati().sindaco.elettorato_potenziale
+
+
 def test_conservazione_oltre_30_giorni_rifiutata():
     with pytest.raises(ValidationError):
         config.Fonti(news=[], istituzionali=[], social={}, conservazione_testi_giorni=60)

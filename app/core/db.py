@@ -174,6 +174,14 @@ CREATE TABLE IF NOT EXISTS simulazione (
     risultati   JSON,
     costo       DOUBLE                      -- EUR
 );
+-- Fase 5: stato del run (in_attesa | completata | errore), origine (api | chat).
+ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS stato VARCHAR DEFAULT 'in_attesa';
+ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS origine VARCHAR;
+ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS seed INTEGER;
+ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS variante_pesi VARCHAR;
+ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS candidato VARCHAR;
+ALTER TABLE calibrazione ADD COLUMN IF NOT EXISTS metrica VARCHAR;
+ALTER TABLE calibrazione ADD COLUMN IF NOT EXISTS data_sondaggio DATE;
 
 CREATE TABLE IF NOT EXISTS calibrazione (
     simulazione_id  INTEGER NOT NULL,       -- simulazione.id

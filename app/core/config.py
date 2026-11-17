@@ -72,6 +72,7 @@ class Candidato(_Modello):
     posizioni_approvate: list[str | dict[str, Any]] = []
     da_evitare: list[str] = []
     testi_di_esempio: list[str] = []
+    elettorato_potenziale: list[str] = []  # aree di voto di segmenti.yaml
 
 
 class Candidati(_Modello):
@@ -219,6 +220,17 @@ def _leggi_yaml(nome: str) -> dict[str, Any]:
     percorso = DIR_CONFIG / nome
     with percorso.open(encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def elenco_candidati() -> list[tuple[str, Candidato]]:
+    """(chiave, candidato) per tutti i candidati; la chiave identifica il candidato nei run."""
+    c = candidati()
+    out = [("sindaco", c.sindaco)]
+    out += [(f"consiglio_{i}", x) for i, x in enumerate(c.consiglio_comunale)]
+    out += [
+        (f"circ{k}_{i}", x) for k, lista in c.circoscrizioni.items() for i, x in enumerate(lista)
+    ]
+    return out
 
 
 @lru_cache
