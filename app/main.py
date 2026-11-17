@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import aree, demografia, elezioni, laboratorio, stato, temi
+from app.api import aree, demografia, elezioni, laboratorio, report, stato, temi
 from app.core import db
 from app.core.config import RADICE, impostazioni
 
@@ -17,7 +17,11 @@ VERSIONE = "0.1.0"
 DIR_WEB = RADICE / "web"
 
 
-def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -> FastAPI:
+def crea_app(
+    percorso_db: Path | None = None,
+    mappa_sfondo: str | None = None,
+    cartella_report: Path | None = None,
+) -> FastAPI:
     """Costruisce l'app.
 
     I parametri servono ai test: di default si usano DB_PATH e MAPPA_SFONDO da .env.
@@ -38,6 +42,7 @@ def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -
         app.state.mappa_sfondo = sfondo
         app.state.cache_aree = {}
         app.state.cache_elezioni = {}
+        app.state.cartella_report = cartella_report
         pianificatore = None
         if automatica:
             from app.temi import pianificatore as pt
@@ -55,6 +60,7 @@ def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -
     app.include_router(demografia.router)
     app.include_router(temi.router)
     app.include_router(laboratorio.router)
+    app.include_router(report.router)
     app.mount("/static", StaticFiles(directory=DIR_WEB / "static"), name="static")
 
     @app.get("/", include_in_schema=False)
