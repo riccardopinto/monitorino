@@ -37,9 +37,12 @@ CREATE TABLE IF NOT EXISTS sezione_area (
 CREATE SEQUENCE IF NOT EXISTS seq_elezione;
 CREATE TABLE IF NOT EXISTS elezione (
     id      INTEGER PRIMARY KEY DEFAULT nextval('seq_elezione'),
+    -- comunali, circoscrizionali, camera, senato, europee, regionali
     tipo    VARCHAR NOT NULL,
     data    DATE NOT NULL,
-    turno   INTEGER NOT NULL DEFAULT 1
+    turno   INTEGER NOT NULL DEFAULT 1,     -- 2 = ballottaggio
+    nome    VARCHAR NOT NULL,               -- es. "Comunali 2021 - ballottaggio"
+    UNIQUE (tipo, data, turno)
 );
 
 CREATE TABLE IF NOT EXISTS affluenza (
@@ -51,16 +54,42 @@ CREATE TABLE IF NOT EXISTS affluenza (
     schede_nulle    INTEGER,
     PRIMARY KEY (elezione_id, sezione)
 );
+ALTER TABLE affluenza ADD COLUMN IF NOT EXISTS schede_contestate INTEGER;
+ALTER TABLE affluenza ADD COLUMN IF NOT EXISTS voti_validi INTEGER;
 
+-- gruppo: per le preferenze la lista del candidato; vuoto per gli altri soggetti.
+-- Fa parte della chiave: due candidati omonimi in liste diverse restano distinti.
 CREATE TABLE IF NOT EXISTS risultato (
     elezione_id     INTEGER NOT NULL,       -- elezione.id
     sezione         VARCHAR NOT NULL,
     tipo_soggetto   VARCHAR NOT NULL CHECK (tipo_soggetto IN (
-                        'candidato_sindaco', 'lista', 'preferenza',
-                        'presidente_circoscrizione')),
+                        'candidato_sindaco', 'candidato_presidente',
+                        'candidato_uninominale', 'presidente_circoscrizione',
+                        'lista', 'preferenza')),
     soggetto        VARCHAR NOT NULL,
+    gruppo          VARCHAR NOT NULL DEFAULT '',
     voti            INTEGER NOT NULL CHECK (voti >= 0),
-    PRIMARY KEY (elezione_id, sezione, tipo_soggetto, soggetto)
+    PRIMARY KEY (elezione_id, sezione, tipo_soggetto, gruppo, soggetto)
+);
+
+-- Classificazione delle liste, da config/aree_politiche.yaml (correggibile a mano).
+CREATE TABLE IF NOT EXISTS lista_alias (
+    elezione_id     INTEGER NOT NULL,       -- elezione.id
+    lista           VARCHAR NOT NULL,       -- nome come nei file del Comune
+    forza_politica  VARCHAR NOT NULL,       -- nome normalizzato, confrontabile tra elezioni
+    area_politica   VARCHAR NOT NULL,
+    coalizione      VARCHAR,                -- candidato collegato, dove c'è
+    PRIMARY KEY (elezione_id, lista)
+);
+
+-- Totali cittadini ufficiali per il controllo delle somme per sezione.
+-- voce: iscritti, votanti, bianche, lista, candidato.
+CREATE TABLE IF NOT EXISTS totale_ufficiale (
+    elezione_id INTEGER NOT NULL,           -- elezione.id
+    voce        VARCHAR NOT NULL,
+    soggetto    VARCHAR NOT NULL DEFAULT '',
+    valore      INTEGER NOT NULL,
+    fonte       VARCHAR NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS demografia (
@@ -182,6 +211,8 @@ TABELLE = (
     "elezione",
     "affluenza",
     "risultato",
+    "lista_alias",
+    "totale_ufficiale",
     "demografia",
     "documento",
     "tema_aggregato",
@@ -206,8 +237,34 @@ def connetti(percorso: Path | str, *, sola_lettura: bool = False) -> duckdb.Duck
     return con
 
 
+def _colonne(con: duckdb.DuckDBPyConnection, tabella: str) -> set[str]:
+    righe = con.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name = ?", [tabella]
+    ).fetchall()
+    return {r[0] for r in righe}
+
+
+def _ricrea_se_vuota(con: duckdb.DuckDBPyConnection, tabella: str, colonna_nuova: str) -> None:
+    """Migrazione per tabelle create in Fase 0 con una chiave diversa.
+
+    DuckDB non modifica chiavi primarie e vincoli: se la tabella esiste senza la colonna
+    nuova la si ricrea, ma solo se è vuota. Con dei dati ci si ferma.
+    """
+    colonne = _colonne(con, tabella)
+    if not colonne or colonna_nuova in colonne:
+        return
+    (righe,) = con.execute(f"SELECT count(*) FROM {tabella}").fetchone()
+    if righe:
+        raise RuntimeError(
+            f"La tabella {tabella} va migrata (manca {colonna_nuova}) ma contiene {righe} righe"
+        )
+    con.execute(f"DROP TABLE {tabella}")
+
+
 def crea_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Crea tabelle e sequenze mancanti. Si può rieseguire senza effetti."""
+    _ricrea_se_vuota(con, "risultato", "gruppo")  # Fase 2
+    _ricrea_se_vuota(con, "elezione", "nome")  # Fase 2
     con.execute(SCHEMA)
 
 
