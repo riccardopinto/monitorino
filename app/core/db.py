@@ -146,6 +146,12 @@ CREATE TABLE IF NOT EXISTS tema_aggregato (
     n_fonti         INTEGER
 );
 
+-- Temi nascosti dallo staff nella vista temi (lista, mappa, conteggi). Condiviso da tutti.
+CREATE TABLE IF NOT EXISTS tema_escluso (
+    tema        VARCHAR PRIMARY KEY,
+    escluso_il  TIMESTAMP NOT NULL DEFAULT current_timestamp
+);
+
 CREATE SEQUENCE IF NOT EXISTS seq_segmento;
 CREATE TABLE IF NOT EXISTS segmento (
     id          INTEGER PRIMARY KEY DEFAULT nextval('seq_segmento'),
@@ -249,6 +255,7 @@ TABELLE = (
     "documento",
     "luogo",
     "tema_aggregato",
+    "tema_escluso",
     "segmento",
     "segmento_peso",
     "simulazione",

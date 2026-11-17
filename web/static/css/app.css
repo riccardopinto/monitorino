@@ -132,6 +132,7 @@ body {
 .flussi { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bordo); }
 .tabella-scorrevole { overflow-x: auto; }
 .matrice th { font-weight: 600; font-size: 0.72rem; }
+.matrice td.chiaro { color: #fff; }
 .titoletto { font-size: 0.85rem; margin: 16px 0 6px; }
 .dispersione { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--bordo); }
 
@@ -214,6 +215,30 @@ body {
 .archivio li.scelto .link { font-weight: 700; }
 .legenda-riga { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 .errori { font-size: 0.78rem; color: var(--errore); padding-left: 18px; }
+
+/* --- temi: pallini, esclusione, incolla --- */
+.pallino {
+  display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 5px; border-radius: 999px;
+  background: #1f5fa8; color: #fff; font-size: 0.72rem; font-weight: 700; line-height: 18px; text-align: center;
+}
+.pallino.nuovo { background: #e66100; box-shadow: 0 0 0 2px #fff, 0 0 0 3px #e66100; }
+.etichetta-circoscrizione .pallino { vertical-align: 1px; }
+.legenda .pallino { margin: 0 4px 0 0; flex: none; }
+.matrice-temi th.tema { white-space: nowrap; }
+.matrice-temi th.tema span { cursor: pointer; white-space: normal; }
+.escludi {
+  border: 0; background: none; color: var(--testo-tenue); cursor: pointer; padding: 0 4px 0 0;
+  font-size: 0.9rem; line-height: 1; opacity: 0.45;
+}
+.escludi:hover, .escludi:focus-visible { opacity: 1; color: var(--errore); }
+.esclusi { font-size: 0.75rem; color: var(--testo-tenue); margin: 6px 0 0; }
+.tema-escluso {
+  border: 1px solid var(--bordo); background: var(--sfondo); border-radius: 999px; padding: 1px 8px;
+  margin: 2px 2px 0 0; font: inherit; font-size: 0.72rem; cursor: pointer; color: var(--testo-tenue);
+  text-decoration: line-through;
+}
+.tema-escluso:hover { text-decoration: none; color: var(--accento); }
+.incolla.sopra { border-color: var(--accento); background: var(--accento-tenue); }
 
 @media (max-width: 900px) {
   .zone, .zone.larga { grid-template-columns: 1fr; grid-template-rows: auto minmax(320px, 1fr) auto; }

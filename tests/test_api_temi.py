@@ -89,3 +89,34 @@ def test_date_settimana():
 
     d = _dal(1)
     assert d.weekday() == 0 and d <= date.today() < d + timedelta(weeks=1)
+
+
+def test_esclusione_e_riepilogo_aree(client):
+    client.post(
+        "/api/temi/classificazioni",
+        content=_classificazioni(),
+        headers={"Content-Type": "text/plain"},
+    )
+    r = client.get("/api/temi/aree").json()
+    # documenti di oggi, nessuno nelle settimane precedenti: il tema è nuovo
+    assert r["aree"]["3"] == {"temi": 1, "nuovi": [TEMA]}
+
+    assert client.put(f"/api/temi/esclusi/{TEMA}").json() == {"esclusi": [TEMA]}
+    m = client.get("/api/temi/matrice").json()
+    assert m["temi"] == [] and m["celle"] == [] and m["esclusi"] == [TEMA]
+    assert client.get("/api/temi/aree").json()["aree"] == {}
+    assert client.get("/api/temi/andamento").json()["serie"] == []
+
+    assert client.delete(f"/api/temi/esclusi/{TEMA}").json() == {"esclusi": []}
+    assert client.get("/api/temi/matrice").json()["temi"] == [TEMA]
+
+
+def test_tema_vecchio_non_nuovo(client):
+    oggi = date.today()
+    lunedi = oggi - timedelta(days=oggi.weekday())
+    con = client.app.state.db
+    con.executemany(
+        "INSERT INTO tema_aggregato VALUES (?, 13, ?, 2, 0, 1)",
+        [("traffico", lunedi), ("traffico", lunedi - timedelta(weeks=2))],
+    )
+    assert client.get("/api/temi/aree").json()["aree"]["3"] == {"temi": 1, "nuovi": []}

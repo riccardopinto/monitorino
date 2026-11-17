@@ -30,6 +30,9 @@
       esitoImport: null,
       erroreImport: null,
       caricamentoImport: false,
+      testoIncolla: "",
+      sopra: false, // file trascinato sopra la casella
+      riepilogo: null, // /api/temi/aree
       errore: null,
       circoscrizioni: ["1", "2", "3", "4", "5", "6", "7", "8"],
       scala: null,
@@ -46,7 +49,7 @@
         // testo bianco sui tre gradini più scuri della rampa
         const c = this.cella(tema, area);
         if (!c || !this.scala) return false;
-        return Scala.SEQUENZIALE.indexOf(Scala.coloreDi(this.scala, c.volume)) >= 3;
+        return Scala.SEQUENZIALE.indexOf(Scala.coloreDi(this.scala, c.volume)) >= Scala.PRIMO_SCURO;
       },
 
       async avvia() {
@@ -55,9 +58,10 @@
 
       async aggiorna() {
         try {
-          [this.stato, this.matrice] = await Promise.all([
+          [this.stato, this.matrice, this.riepilogo] = await Promise.all([
             json("/api/temi/stato"),
             json(`/api/temi/matrice?settimane=${this.settimane}`),
+            json(`/api/temi/aree?settimane=${this.settimane}`),
           ]);
           this.errore = null;
         } catch (e) {
@@ -75,6 +79,7 @@
         if (!this.tema) {
           window.MappaTorino.pulisci();
           this.legenda = [];
+          this.segnaTemi();
           return;
         }
         const valori = Object.fromEntries(
@@ -84,6 +89,40 @@
         const formato = (v) => `${Math.round(v)} documenti`;
         this.legenda = Scala.legenda(scala, formato);
         await window.MappaTorino.colora("circoscrizione", valori, (v) => Scala.coloreDi(scala, v), formato);
+        this.segnaTemi();
+      },
+
+      // Pallino su ogni circoscrizione: quanti temi nel periodo; arancione se ce ne sono di nuovi.
+      segnaTemi() {
+        const segnali = {};
+        for (const [codice, r] of Object.entries(this.riepilogo?.aree || {})) {
+          if (!r.temi) continue;
+          const titolo = r.nuovi.length
+            ? `${r.temi} temi nel periodo, nuovi questa settimana: ${r.nuovi.join("; ")}`
+            : `${r.temi} temi nel periodo, nessuno nuovo questa settimana`;
+          segnali[codice] = { testo: r.nuovi.length ? `${r.temi} +${r.nuovi.length}` : `${r.temi}`, nuovo: r.nuovi.length > 0, titolo };
+        }
+        window.MappaTorino.segnala(segnali);
+      },
+      nuoviTotali() {
+        return Object.values(this.riepilogo?.aree || {}).reduce((s, r) => s + r.nuovi.length, 0);
+      },
+
+      async escludi(tema) {
+        try {
+          await json(`/api/temi/esclusi/${encodeURIComponent(tema)}`, { method: "PUT" });
+          await this.aggiorna();
+        } catch (e) {
+          this.errore = e.message;
+        }
+      },
+      async ripristina(tema) {
+        try {
+          await json(`/api/temi/esclusi/${encodeURIComponent(tema)}`, { method: "DELETE" });
+          await this.aggiorna();
+        } catch (e) {
+          this.errore = e.message;
+        }
       },
 
       async aggiornaDettaglio() {
@@ -154,26 +193,35 @@
         });
       },
 
-      async caricaJson(evento) {
-        const file = evento.target.files?.[0];
-        if (!file) return;
+      async importa(testo) {
+        if (!testo.trim()) return;
         this.caricamentoImport = true;
         this.esitoImport = null;
         this.erroreImport = null;
         try {
-          const testo = await file.text();
           this.esitoImport = await json("/api/temi/classificazioni", {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: testo,
           });
+          this.testoIncolla = "";
           await this.aggiorna();
         } catch (e) {
           this.erroreImport = e.message;
         } finally {
           this.caricamentoImport = false;
-          evento.target.value = "";
         }
+      },
+      async caricaJson(evento) {
+        const file = evento.target.files?.[0];
+        if (!file) return;
+        await this.importa(await file.text());
+        evento.target.value = "";
+      },
+      async rilascia(evento) {
+        this.sopra = false;
+        const file = evento.dataTransfer?.files?.[0];
+        if (file) await this.importa(await file.text());
       },
     });
 
@@ -182,6 +230,7 @@
       const s = Alpine.store("temi");
       queueMicrotask(() => {
         if (modulo === "temi") s.avvia();
+        else window.MappaTorino?.togliSegnali();
       });
     });
 

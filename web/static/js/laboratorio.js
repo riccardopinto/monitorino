@@ -2,9 +2,9 @@
 // caricare) o API, risultati pesati, confronto A/B, sintesi, archivio e calibrazione.
 // Ogni risultato porta la dicitura "Simulazione IA, non è un sondaggio".
 (() => {
-  const NEGATIVO = "#e34948"; // poli della scala divergente (scale.js)
-  const POSITIVO = "#3987e5";
-  const NEUTRO = "#c8c7c2";
+  const NEGATIVO = "#d6604d"; // rosso e blu della scala divergente (scale.js)
+  const POSITIVO = "#4393c3";
+  const NEUTRO = "#bdbdbd";
   const BASE = "/api/laboratorio";
   const grafici = {};
 

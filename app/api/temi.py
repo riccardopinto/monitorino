@@ -17,6 +17,8 @@ from app.temi import aggrega, chat
 router = APIRouter(prefix="/api/temi", tags=["temi"])
 Con = Annotated[duckdb.DuckDBPyConnection, Depends(cursore)]
 TIPI_NEWS = ("news", "istituzionale")
+SETTIMANE_NOVITA = 4  # un tema è "nuovo" se manca nelle 4 settimane prima di quella corrente
+NON_ESCLUSO = "t.tema NOT IN (SELECT tema FROM tema_escluso)"
 
 
 def _dal(settimane: int) -> date:
@@ -61,11 +63,11 @@ def matrice(con: Con, settimane: Annotated[int, Query(ge=1, le=52)] = 4) -> dict
     """Temi × circoscrizioni: volume e sentiment medio (pesato sul volume) nel periodo."""
     dal = _dal(settimane)
     righe = con.execute(
-        """
+        f"""
         SELECT t.tema, a.codice, sum(t.volume) AS volume,
                sum(t.sentiment_medio * t.volume) / nullif(sum(t.volume), 0) AS sentiment
         FROM tema_aggregato t LEFT JOIN area a ON a.id = t.area_id
-        WHERE t.settimana >= ? GROUP BY ALL
+        WHERE t.settimana >= ? AND {NON_ESCLUSO} GROUP BY ALL
         """,
         [dal],
     ).fetchall()
@@ -79,6 +81,7 @@ def matrice(con: Con, settimane: Annotated[int, Query(ge=1, le=52)] = 4) -> dict
     return {
         "dal": dal.isoformat(),
         "settimane": settimane,
+        "esclusi": esclusi(con),
         "temi": temi,
         "citta": citta,
         "celle": celle,
@@ -87,6 +90,57 @@ def matrice(con: Con, settimane: Annotated[int, Query(ge=1, le=52)] = 4) -> dict
 
 def _r(v):
     return None if v is None else round(float(v), 2)
+
+
+@router.get("/aree")
+def riepilogo_aree(con: Con, settimane: Annotated[int, Query(ge=1, le=52)] = 4) -> dict:
+    """Per circoscrizione: quanti temi nel periodo e quali sono nuovi questa settimana.
+
+    Nuovo = con documenti nella settimana corrente e nessuno nelle SETTIMANE_NOVITA precedenti.
+    """
+    dal = _dal(settimane)
+    corrente = _dal(1)
+    prima = corrente - timedelta(weeks=SETTIMANE_NOVITA)
+    righe = con.execute(
+        f"""
+        SELECT a.codice, t.tema,
+               sum(t.volume) FILTER (t.settimana >= ?) AS periodo,
+               sum(t.volume) FILTER (t.settimana >= ?) AS recente,
+               sum(t.volume) FILTER (t.settimana >= ? AND t.settimana < ?) AS precedente
+        FROM tema_aggregato t JOIN area a ON a.id = t.area_id
+        WHERE a.tipo = 'circoscrizione' AND {NON_ESCLUSO}
+        GROUP BY ALL
+        """,
+        [dal, corrente, prima, corrente],
+    ).fetchall()
+    aree: dict[str, dict] = {}
+    for codice, tema, periodo, recente, precedente in righe:
+        voce = aree.setdefault(codice, {"temi": 0, "nuovi": []})
+        if periodo:
+            voce["temi"] += 1
+        if recente and not precedente:
+            voce["nuovi"].append(tema)
+    for voce in aree.values():
+        voce["nuovi"].sort()
+    return {"dal": dal.isoformat(), "settimana_corrente": corrente.isoformat(), "aree": aree}
+
+
+def esclusi(con) -> list[str]:
+    return [t for (t,) in con.execute("SELECT tema FROM tema_escluso ORDER BY tema").fetchall()]
+
+
+@router.put("/esclusi/{tema}")
+def escludi(con: Con, tema: str) -> dict:
+    if not tema.strip():
+        raise HTTPException(422, "Tema vuoto")
+    con.execute("INSERT INTO tema_escluso (tema) VALUES (?) ON CONFLICT DO NOTHING", [tema])
+    return {"esclusi": esclusi(con)}
+
+
+@router.delete("/esclusi/{tema}")
+def ripristina(con: Con, tema: str) -> dict:
+    con.execute("DELETE FROM tema_escluso WHERE tema = ?", [tema])
+    return {"esclusi": esclusi(con)}
 
 
 @router.get("/andamento")
@@ -102,7 +156,8 @@ def andamento(
     filtro = "t.area_id = ?" if area_id is not None else "t.area_id IS NULL"
     parametri = [dal, area_id] if area_id is not None else [dal]
     righe = con.execute(
-        f"SELECT tema, settimana, volume FROM tema_aggregato t WHERE settimana >= ? AND {filtro}",
+        "SELECT tema, settimana, volume FROM tema_aggregato t "
+        f"WHERE settimana >= ? AND {filtro} AND {NON_ESCLUSO}",
         parametri,
     ).fetchall()
     totali: dict[str, int] = {}

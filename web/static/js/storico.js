@@ -37,6 +37,14 @@
     Alpine.store("storico", {
       NOMI_TIPO,
       NOMI_METRICA,
+      // Matrice dei flussi: quote 0-100 su gradini fissi di 20 punti della scala sequenziale.
+      coloreFlusso(v) {
+        if (v === null || v === undefined || v < 5) return "transparent";
+        return Scala.SEQUENZIALE[Math.min(5, Math.floor(v / 100 * 5) + 1)];
+      },
+      testoChiaroFlusso(v) {
+        return Scala.SEQUENZIALE.indexOf(this.coloreFlusso(v)) >= Scala.PRIMO_SCURO;
+      },
       elezioni: [],
       elezione: null, // id
       confronto: "", // id dell'elezione di partenza per variazione e flussi ("" = nessuna)

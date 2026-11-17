@@ -199,6 +199,13 @@
             </template>
             <div class="legenda-voce"><span class="campione nd"></span><span>nessun documento</span></div>
           </div>
+          <div class="legenda" x-show="$store.temi.riepilogo">
+            <h3>Pallini sulla mappa</h3>
+            <div class="legenda-voce"><span class="pallino">5</span><span>temi discussi nel periodo</span></div>
+            <div class="legenda-voce"><span class="pallino nuovo">5 +2</span><span>di cui nuovi questa settimana</span></div>
+            <p class="vuoto" x-show="$store.temi.nuoviTotali()"
+               x-text="$store.temi.nuoviTotali() + ' temi nuovi questa settimana: passa sopra un pallino per vederli.'"></p>
+          </div>
 
           <h2>Classificazione</h2>
           <template x-if="$store.temi.stato">
@@ -216,9 +223,17 @@
           <a class="pulsante" href="/api/temi/prompt" download
              :class="{ disattivo: !$store.temi.stato?.da_classificare }">Scarica prompt</a>
           <label class="pulsante secondario">
-            Carica JSON della risposta
+            Carica file JSON
             <input type="file" accept=".json,.txt,application/json,text/plain" hidden @change="$store.temi.caricaJson($event)">
           </label>
+          <label class="campo">Oppure incolla qui la risposta della chat (o trascina il file)
+            <textarea rows="4" class="incolla" :class="{ sopra: $store.temi.sopra }"
+                      x-model="$store.temi.testoIncolla" placeholder="{&quot;classificazioni&quot;: [...]}"
+                      @dragover.prevent="$store.temi.sopra = true" @dragleave="$store.temi.sopra = false"
+                      @drop.prevent="$store.temi.rilascia($event)"></textarea>
+          </label>
+          <button type="button" class="pulsante" :class="{ disattivo: !$store.temi.testoIncolla.trim() || $store.temi.caricamentoImport }"
+                  @click="$store.temi.importa($store.temi.testoIncolla)">Importa</button>
           <p class="vuoto" x-show="$store.temi.caricamentoImport">importazione…</p>
           <template x-if="$store.temi.esitoImport">
             <p class="avviso">
@@ -479,7 +494,11 @@
                 <tbody>
                   <template x-for="t in $store.temi.matrice.temi" :key="t">
                     <tr :class="{ scelto: t === $store.temi.tema }">
-                      <th class="tema" @click="$store.temi.scegli(t, null)" x-text="t"></th>
+                      <th class="tema">
+                        <button type="button" class="escludi" :title="'Escludi «' + t + '» dalla lista e dalla mappa'"
+                                :aria-label="'Escludi il tema ' + t" @click.stop="$store.temi.escludi(t)">×</button>
+                        <span @click="$store.temi.scegli(t, null)" x-text="t"></span>
+                      </th>
                       <template x-for="c in $store.temi.circoscrizioni" :key="c">
                         <td class="num cella" @click="$store.temi.scegli(t, c)"
                             :style="'background:' + $store.temi.coloreCella(t, c)"
@@ -487,15 +506,25 @@
                             :title="$store.temi.cella(t, c) ? 'Circoscrizione ' + c + ': ' + $store.temi.cella(t, c).volume + ' documenti, sentiment ' + $store.temi.fmtSentiment($store.temi.cella(t, c).sentiment) : 'Circoscrizione ' + c + ': nessun documento'"
                             x-text="$store.temi.cella(t, c)?.volume || ''"></td>
                       </template>
-                      <td class="num" :title="'Sentiment medio ' + $store.temi.fmtSentiment($store.temi.matrice.citta[t].sentiment)"
-                          x-text="$store.temi.matrice.citta[t].volume"></td>
+                      <td class="num" :title="'Sentiment medio ' + $store.temi.fmtSentiment($store.temi.matrice.citta[t]?.sentiment)"
+                          x-text="$store.temi.matrice.citta[t]?.volume"></td>
                     </tr>
                   </template>
                 </tbody>
               </table>
             </div>
           </template>
+          <p class="esclusi" x-show="$store.temi.matrice?.esclusi.length">
+            Temi esclusi:
+            <template x-for="t in $store.temi.matrice?.esclusi || []" :key="t">
+              <button type="button" class="tema-escluso" :title="'Ripristina «' + t + '»'" @click="$store.temi.ripristina(t)">
+                <span x-text="t"></span> ↺
+              </button>
+            </template>
+          </p>
           <p class="nota">
+            Con × escludi un tema dalla lista, dalla mappa e dai conteggi (vale per tutto lo staff);
+            clic su un tema escluso per ripristinarlo.
             Numero di documenti per tema e circoscrizione (colonna To: tutta la città, compresi i
             documenti senza un luogo riconosciuto). Passa sopra una cella per il sentiment medio
             (da -2 a +2); clic per selezionare tema e area. Per i social si contano solo numeri
@@ -845,7 +874,8 @@
                           <tr>
                             <th x-text="$store.storico.flussi.da[i]"></th>
                             <template x-for="(v, j) in riga" :key="j">
-                              <td class="num" :style="'background: rgba(42,120,214,' + (v / 100 * 0.55) + ')'"
+                              <td class="num" :style="'background:' + $store.storico.coloreFlusso(v)"
+                                  :class="{ chiaro: $store.storico.testoChiaroFlusso(v) }"
                                   :title="formatoNumero($store.storico.flussi.elettori[i][j], 0) + ' elettori stimati'"
                                   x-text="formatoNumero(v, 0) + '%'"></td>
                             </template>

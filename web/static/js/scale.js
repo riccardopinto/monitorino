@@ -1,9 +1,12 @@
 // Scale di colore e legende condivise dai moduli con coropletica.
-// Rampa sequenziale blu (chiaro = poco, scuro = tanto) e scala divergente
-// rosso-grigio-blu per le variazioni, dalla palette di riferimento.
+// Sequenziale a più tinte ad alto contrasto (viridis: giallo chiaro = poco, viola scuro = tanto):
+// la luminosità scende in modo regolare, quindi resta leggibile anche con daltonismo e in
+// bianco e nero. Divergente rosso-grigio-blu (ColorBrewer RdBu) per variazioni e saldi.
 (() => {
-  const SEQUENZIALE = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95"];
-  const DIVERGENTE = ["#a82c2b", "#e34948", "#f3a9a8", "#f0efec", "#9ec5f4", "#3987e5", "#184f95"];
+  const SEQUENZIALE = ["#fde725", "#7ad151", "#22a884", "#2a788e", "#414487", "#440154"];
+  const DIVERGENTE = ["#b2182b", "#ef8a62", "#fddbc7", "#ededed", "#d1e5f0", "#67a9cf", "#2166ac"];
+  // Indice del primo gradino su cui serve testo bianco.
+  const PRIMO_SCURO = 3;
 
   function classi(valori, divergente) {
     const numeri = valori.filter((v) => v !== null && v !== undefined && !Number.isNaN(v));
@@ -37,5 +40,5 @@
     });
   }
 
-  window.Scala = { SEQUENZIALE, DIVERGENTE, classi, coloreDi, legenda };
+  window.Scala = { SEQUENZIALE, DIVERGENTE, PRIMO_SCURO, classi, coloreDi, legenda };
 })();

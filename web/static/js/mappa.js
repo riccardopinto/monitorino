@@ -18,6 +18,26 @@
   let evidenziato = null;
   // Coropletica attiva: { tipo, valori: {codice: numero}, colore: fn(v) -> hex, formato: fn(v) -> testo }
   let colorazione = null;
+  // Pallini sulle etichette delle circoscrizioni: {codice: { testo, nuovo, titolo }}
+  let segnali = {};
+
+  function escapa(s) {
+    return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  }
+
+  function etichetta(codice) {
+    const s = segnali[codice];
+    if (!s) return `<strong>${codice}</strong>`;
+    const classe = s.nuovo ? "pallino nuovo" : "pallino";
+    return `<strong>${codice}</strong><span class="${classe}" title="${escapa(s.titolo || "")}">${escapa(s.testo)}</span>`;
+  }
+
+  function aggiornaEtichette() {
+    if (!livelli.circoscrizione) return;
+    livelli.circoscrizione.eachLayer((layer) => {
+      layer.setTooltipContent(etichetta(layer.feature.properties.codice));
+    });
+  }
 
   async function caricaGeojson(tipo) {
     const risposta = await fetch(`/api/aree?tipo=${tipo}`);
@@ -47,7 +67,7 @@
       if (colorazione.tipo === tipo) {
         const v = valore(tipo, props.codice);
         base.fillColor = v === undefined || v === null ? "#d9d9d6" : colorazione.colore(v);
-        base.fillOpacity = 0.78;
+        base.fillOpacity = 0.85;
         if (tipo === "sezione") base.color = "#ffffff";
       } else {
         base.fillOpacity = 0; // l'altro livello resta solo come contorno
@@ -70,7 +90,7 @@
         const p = f.properties;
         perId.set(p.id, { layer, tipo, props: p });
         if (tipo === "circoscrizione") {
-          layer.bindTooltip(`<strong>${p.codice}</strong>`, {
+          layer.bindTooltip(etichetta(p.codice), {
             permanent: true,
             direction: "center",
             className: "etichetta-circoscrizione",
@@ -177,6 +197,15 @@
       if (!colorazione) return;
       colorazione = null;
       ridisegna();
+    },
+    segnala(valori) {
+      segnali = valori || {};
+      aggiornaEtichette();
+    },
+    togliSegnali() {
+      if (!Object.keys(segnali).length) return;
+      segnali = {};
+      aggiornaEtichette();
     },
   };
 
