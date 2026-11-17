@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"><channel><title>Testata di prova Torino</title><link>https://esempio.test/torino</link>
+<description>Feed inventato per i test</description>
+<item><title>Nuovo parco in &lt;b&gt;via Esempio&lt;/b&gt; a San Paolo</title>
+<link>https://esempio.test/torino/1</link><pubDate>Mon, 16 Nov 2026 09:00:00 +0100</pubDate>
+<description><![CDATA[<p>Il consiglio della <strong>Circoscrizione 3</strong> approva il progetto &amp; i fondi.</p>]]></description></item>
+<item><title>Titolo ripetuto come sommario</title>
+<link>https://esempio.test/torino/2</link><pubDate>Sun, 15 Nov 2026 18:30:00 +0100</pubDate>
+<description>Titolo ripetuto come sommario</description></item>
+<item><title>Articolo senza link</title><pubDate>Sun, 15 Nov 2026 18:30:00 +0100</pubDate></item>
+<item><title>Articolo molto lungo</title><link>https://esempio.test/torino/3</link>
+<description>Parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola parola fine.</description></item>
+</channel></rss>

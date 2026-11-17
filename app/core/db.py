@@ -125,6 +125,8 @@ ALTER TABLE documento ADD COLUMN IF NOT EXISTS luogo VARCHAR;           -- luogo
 ALTER TABLE documento ADD COLUMN IF NOT EXISTS classificato_da VARCHAR; -- api|chat
 ALTER TABLE documento ADD COLUMN IF NOT EXISTS classificato_il TIMESTAMP;
 ALTER TABLE documento ADD COLUMN IF NOT EXISTS impronta VARCHAR;
+-- true se riguarda la città di Torino (i feed locali includono la provincia); dalla classificazione
+ALTER TABLE documento ADD COLUMN IF NOT EXISTS pertinente BOOLEAN;
 ALTER TABLE documento ADD COLUMN IF NOT EXISTS raccolto_il TIMESTAMP DEFAULT current_timestamp;
 
 -- Dizionario dei luoghi per assegnare i documenti a una circoscrizione (Fase 4).
