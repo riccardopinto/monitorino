@@ -16,6 +16,7 @@
   <script defer src="/static/js/demografia.js"></script>
   <script defer src="/static/js/temi.js"></script>
   <script defer src="/static/js/laboratorio.js"></script>
+  <script defer src="/static/js/report.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body x-data>
@@ -36,6 +37,8 @@
                 x-text="m.nome"></button>
       </template>
     </nav>
+    <button type="button" class="pulsante esporta" x-show="$store.selezione.modulo !== 'report'"
+            @click="$store.report.apri()" title="Esporta in PDF la vista corrente">Esporta PDF</button>
   </header>
 
   <main class="zone" :class="{ larga: $store.selezione.modulo === 'laboratorio' }">
@@ -389,7 +392,17 @@
         </div>
       </template>
 
-      <template x-if="!['storico', 'mappa', 'demografia', 'temi', 'laboratorio'].includes($store.selezione.modulo)">
+      <template x-if="$store.selezione.modulo === 'report'">
+        <div class="filtri-report">
+          <h2>Nuovo report</h2>
+          <p class="nota" style="margin-top: 0">Ogni vista ha anche il pulsante "Esporta PDF" in alto, che parte dai filtri scelti.</p>
+          <template x-for="(nome, t) in $store.report.opzioni?.tipi || {}" :key="t">
+            <button type="button" class="pulsante secondario blocco-pulsante" @click="$store.report.apri(t, {})" x-text="nome"></button>
+          </template>
+        </div>
+      </template>
+
+      <template x-if="!['storico', 'mappa', 'demografia', 'temi', 'laboratorio', 'report'].includes($store.selezione.modulo)">
         <div>
           <h2>Filtri</h2>
           <p class="vuoto">Il modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriverà nelle prossime fasi.</p>
@@ -551,9 +564,27 @@
         </div>
       </template>
 
-      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia', 'temi', 'laboratorio'].includes($store.selezione.modulo)">
+      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia', 'temi', 'laboratorio', 'report'].includes($store.selezione.modulo)">
         Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.
       </p>
+
+      <template x-if="$store.selezione.modulo === 'report'">
+        <div class="dettaglio-report">
+          <h3 class="titoletto" style="margin-top: 0">Archivio dei report</h3>
+          <p class="errore" x-show="$store.report.erroreArchivio" x-text="$store.report.erroreArchivio"></p>
+          <ul class="archivio">
+            <template x-for="r in $store.report.archivio" :key="r.id">
+              <li>
+                <a class="link" :href="r.url" :download="r.file" x-text="r.titolo"></a>
+                <span class="vuoto piccolo"
+                      x-text="r.etichetta_tipo + ' · ' + $store.report.descriviParametri(r) + ' · ' + r.timestamp.replace('T', ' ') + (r.autore ? ' · ' + r.autore : '') + ' · ' + r.pagine + ' pag.'"></span>
+              </li>
+            </template>
+          </ul>
+          <p class="vuoto" x-show="!$store.report.archivio.length">Nessun report generato.</p>
+          <p class="nota">I PDF sono salvati nella cartella reports_out/ del server.</p>
+        </div>
+      </template>
 
       <template x-if="$store.selezione.modulo === 'laboratorio'">
         <div class="dettaglio-lab">
@@ -902,5 +933,157 @@
       </template>
     </aside>
   </main>
+  <!-- ============ REPORT PDF: ANTEPRIMA E OPZIONI ============ -->
+  <div class="modale-report" x-cloak x-show="$store.report.aperto" @keydown.escape.window="$store.report.chiudi()"
+       role="dialog" aria-modal="true" aria-label="Esporta PDF">
+    <div class="modale-corpo">
+      <aside class="modale-opzioni">
+        <h2>Esporta PDF</h2>
+        <label class="campo">Tipo di report
+          <select x-model="$store.report.tipo" @change="$store.report.cambiaTipo()">
+            <template x-for="(nome, t) in $store.report.opzioni?.tipi || {}" :key="t">
+              <option :value="t" x-text="nome" :selected="t === $store.report.tipo"></option>
+            </template>
+          </select>
+        </label>
+
+        <template x-if="$store.report.tipo === 'scheda'">
+          <label class="campo">Circoscrizione
+            <select x-model="$store.report.p.area" @change="$store.report.anteprima()">
+              <template x-for="c in $store.report.circoscrizioni" :key="c">
+                <option :value="c" x-text="'Circoscrizione ' + c + ($store.report.nomeCirc(c) ? ' · ' + $store.report.nomeCirc(c) : '')" :selected="c === $store.report.p.area"></option>
+              </template>
+            </select>
+          </label>
+        </template>
+
+        <template x-if="$store.report.tipo === 'confronto'">
+          <div>
+            <label class="campo">Confronta
+              <select x-model="$store.report.p.modo" @change="$store.report.anteprima()">
+                <option value="elezioni" :selected="$store.report.p.modo === 'elezioni'">due elezioni sulla stessa area</option>
+                <option value="aree" :selected="$store.report.p.modo === 'aree'">due circoscrizioni nella stessa elezione</option>
+              </select>
+            </label>
+            <template x-if="$store.report.p.modo === 'elezioni'">
+              <div>
+                <label class="campo">Da
+                  <select x-model.number="$store.report.p.da" @change="$store.report.anteprima()">
+                    <template x-for="e in $store.report.opzioni?.elezioni || []" :key="e.id">
+                      <option :value="e.id" x-text="e.nome" :selected="e.id === $store.report.p.da"></option>
+                    </template>
+                  </select>
+                </label>
+                <label class="campo">A
+                  <select x-model.number="$store.report.p.a" @change="$store.report.anteprima()">
+                    <template x-for="e in $store.report.opzioni?.elezioni || []" :key="e.id">
+                      <option :value="e.id" x-text="e.nome" :selected="e.id === $store.report.p.a"></option>
+                    </template>
+                  </select>
+                </label>
+                <label class="campo">Area
+                  <select x-model="$store.report.p.area" @change="$store.report.anteprima()">
+                    <option value="Torino" :selected="$store.report.p.area === 'Torino'">tutta Torino</option>
+                    <template x-for="c in $store.report.circoscrizioni" :key="c">
+                      <option :value="c" x-text="'Circoscrizione ' + c + ($store.report.nomeCirc(c) ? ' · ' + $store.report.nomeCirc(c) : '')" :selected="c === $store.report.p.area"></option>
+                    </template>
+                  </select>
+                </label>
+              </div>
+            </template>
+            <template x-if="$store.report.p.modo === 'aree'">
+              <div>
+                <label class="campo">Elezione
+                  <select x-model.number="$store.report.p.elezione" @change="$store.report.anteprima()">
+                    <template x-for="e in $store.report.opzioni?.elezioni || []" :key="e.id">
+                      <option :value="e.id" x-text="e.nome" :selected="e.id === $store.report.p.elezione"></option>
+                    </template>
+                  </select>
+                </label>
+                <div class="riga-campi">
+                  <label class="campo">Prima area
+                    <select x-model="$store.report.p.area1" @change="$store.report.anteprima()">
+                      <template x-for="c in $store.report.circoscrizioni" :key="c">
+                        <option :value="c" x-text="'Circ. ' + c" :selected="c === $store.report.p.area1"></option>
+                      </template>
+                    </select>
+                  </label>
+                  <label class="campo">Seconda area
+                    <select x-model="$store.report.p.area2" @change="$store.report.anteprima()">
+                      <template x-for="c in $store.report.circoscrizioni" :key="c">
+                        <option :value="c" x-text="'Circ. ' + c" :selected="c === $store.report.p.area2"></option>
+                      </template>
+                    </select>
+                  </label>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <template x-if="$store.report.tipo === 'bollettino'">
+          <label class="campo">Settimana (un giorno qualsiasi; vuoto = l'ultima con dati)
+            <input type="date" x-model="$store.report.p.settimana" @change="$store.report.anteprima()">
+          </label>
+        </template>
+
+        <template x-if="$store.report.tipo === 'simulazione'">
+          <label class="campo">Simulazione completata
+            <select x-model.number="$store.report.p.simulazione" @change="$store.report.anteprima()">
+              <template x-for="s in $store.report.opzioni?.simulazioni || []" :key="s.id">
+                <option :value="s.id" x-text="'#' + s.id + ' ' + s.proposta" :selected="s.id === $store.report.p.simulazione"></option>
+              </template>
+            </select>
+          </label>
+        </template>
+        <p class="vuoto" x-show="$store.report.tipo === 'simulazione' && !$store.report.opzioni?.simulazioni.length">
+          Nessuna simulazione completata.</p>
+
+        <template x-if="$store.report.tipo === 'kit'">
+          <div>
+            <label class="campo">Candidato
+              <select x-model="$store.report.p.candidato" @change="$store.report.anteprima()">
+                <template x-for="c in $store.report.opzioni?.candidati || []" :key="c.chiave">
+                  <option :value="c.chiave" x-text="c.nome" :selected="c.chiave === $store.report.p.candidato"></option>
+                </template>
+              </select>
+            </label>
+            <div class="riga-campi">
+              <label class="campo">Dal <input type="date" x-model="$store.report.p.dal" @change="$store.report.anteprima()"></label>
+              <label class="campo">Al <input type="date" x-model="$store.report.p.al" @change="$store.report.anteprima()"></label>
+            </div>
+            <p class="nota">Vuoto: ultimi 30 giorni.</p>
+          </div>
+        </template>
+
+        <label class="campo">Titolo (vuoto = automatico)
+          <input type="text" x-model="$store.report.titolo" @change="$store.report.anteprima()" maxlength="200">
+        </label>
+        <label class="campo">Autore
+          <input type="text" x-model="$store.report.autore" @change="$store.report.anteprima()" maxlength="100"
+                 placeholder="Nome di chi prepara il report">
+        </label>
+
+        <div class="azioni-report">
+          <button type="button" class="pulsante" :class="{ disattivo: $store.report.occupato || !$store.report.html }"
+                  @click="$store.report.genera()">Genera PDF</button>
+          <button type="button" class="pulsante secondario" @click="$store.report.chiudi()">Chiudi</button>
+        </div>
+        <p class="vuoto" x-show="$store.report.occupato">elaborazione…</p>
+        <p class="errore" x-show="$store.report.errore" x-text="$store.report.errore"></p>
+        <template x-if="$store.report.esito">
+          <p class="avviso">
+            PDF pronto: <a :href="$store.report.esito.url" x-text="$store.report.esito.file"></a>
+            (<span x-text="$store.report.esito.pagine"></span> pagine, <span x-text="$store.report.esito.durata_s"></span> s).
+            Lo trovi anche nell'archivio del modulo Report.
+          </p>
+        </template>
+      </aside>
+      <div class="modale-anteprima">
+        <iframe title="Anteprima del report" :srcdoc="$store.report.html" x-show="$store.report.html"></iframe>
+        <p class="vuoto" x-show="!$store.report.html && !$store.report.occupato">Anteprima non disponibile.</p>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

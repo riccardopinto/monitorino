@@ -50,11 +50,16 @@ def tipi(con: Con) -> dict:
         "SELECT id, proposta FROM simulazione WHERE stato = 'completata' ORDER BY id DESC LIMIT 100"
     ).fetchall()
     (settimana,) = con.execute("SELECT max(settimana) FROM tema_aggregato").fetchone()
+    circoscrizioni = con.execute(
+        "SELECT codice, nome FROM area WHERE tipo = 'circoscrizione' "
+        "ORDER BY try_cast(codice AS INTEGER), codice"
+    ).fetchall()
     return {
         "tipi": dati.TIPI,
         "elezioni": [{"id": i, "nome": n, "data": d.isoformat()} for i, n, d in elezioni],
         "simulazioni": [{"id": i, "proposta": p} for i, p in simulazioni],
         "candidati": [{"chiave": k, "nome": c.nome} for k, c in elenco_candidati()],
+        "circoscrizioni": [{"codice": c, "nome": n} for c, n in circoscrizioni],
         "ultima_settimana": settimana.isoformat() if settimana else None,
     }
 
