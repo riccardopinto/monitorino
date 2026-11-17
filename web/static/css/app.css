@@ -132,6 +132,8 @@ body {
 .flussi { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bordo); }
 .tabella-scorrevole { overflow-x: auto; }
 .matrice th { font-weight: 600; font-size: 0.72rem; }
+.titoletto { font-size: 0.85rem; margin: 16px 0 6px; }
+.dispersione { margin-top: 16px; padding-top: 8px; border-top: 1px solid var(--bordo); }
 .area-nome { font-size: 1.1rem; font-weight: 600; }
 .link { border: 0; background: none; color: var(--accento); padding: 0; cursor: pointer; font: inherit; }
 

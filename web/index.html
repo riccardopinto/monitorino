@@ -11,7 +11,9 @@
   <script defer src="/static/vendor/chart.umd.min.js"></script>
   <script defer src="/static/js/app.js"></script>
   <script defer src="/static/js/mappa.js"></script>
+  <script defer src="/static/js/scale.js"></script>
   <script defer src="/static/js/storico.js"></script>
+  <script defer src="/static/js/demografia.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body x-data>
@@ -120,7 +122,57 @@
         </div>
       </template>
 
-      <template x-if="$store.selezione.modulo !== 'storico' && $store.selezione.modulo !== 'mappa'">
+      <template x-if="$store.selezione.modulo === 'demografia'">
+        <div class="filtri-demografia">
+          <h2>Demografia</h2>
+          <label class="campo">Indicatore
+            <select x-model="$store.demografia.indicatore" @change="$store.demografia.aggiorna()">
+              <template x-for="i in $store.demografia.indicatori" :key="i.chiave">
+                <option :value="i.chiave" x-text="i.nome" :selected="i.chiave === $store.demografia.indicatore"></option>
+              </template>
+            </select>
+          </label>
+          <label class="campo">Mappa per
+            <select x-model="$store.demografia.livello" @change="$store.demografia.aggiorna()">
+              <option value="circoscrizione">Circoscrizioni</option>
+              <option value="sezione">Sezioni elettorali</option>
+            </select>
+          </label>
+          <template x-if="$store.demografia.mappa">
+            <div class="legenda">
+              <h3 x-text="$store.demografia.mappa?.nome"></h3>
+              <template x-for="(c, i) in $store.demografia.legenda" :key="i">
+                <div class="legenda-voce"><span class="campione" :style="'background:' + c.colore"></span><span x-text="c.testo"></span></div>
+              </template>
+              <div class="legenda-voce"><span class="campione nd"></span><span>nessun dato o sotto soglia</span></div>
+              <p class="vuoto">Torino: <strong x-text="$store.demografia.formato($store.demografia.mappa?.citta, $store.demografia.mappa?.unita)"></strong></p>
+              <p class="nota" x-text="'Fonte: ' + $store.demografia.mappa?.fonte + ', ' + $store.demografia.mappa?.anno
+                 + ($store.demografia.mappa?.stima ? '. Valori per area stimati.' : '.')"></p>
+              <p class="nota" x-show="$store.demografia.corrente" x-text="$store.demografia.corrente?.nota"></p>
+              <p class="nota" x-show="$store.demografia.mappa?.nota" x-text="$store.demografia.mappa?.nota"></p>
+            </div>
+          </template>
+
+          <h2>Confronto con il voto</h2>
+          <label class="campo">Elezione
+            <select x-model.number="$store.demografia.elezione" @change="$store.demografia.aggiornaDispersione()">
+              <template x-for="e in $store.demografia.elezioni" :key="e.id">
+                <option :value="e.id" x-text="e.nome" :selected="e.id === $store.demografia.elezione"></option>
+              </template>
+            </select>
+          </label>
+          <label class="campo">Area politica
+            <select x-model="$store.demografia.soggetto" @change="$store.demografia.aggiornaDispersione()">
+              <template x-for="s in $store.demografia.soggettiAree" :key="s">
+                <option :value="s" x-text="s" :selected="s === $store.demografia.soggetto"></option>
+              </template>
+            </select>
+          </label>
+          <p class="errore" x-show="$store.demografia.errore" x-text="$store.demografia.errore"></p>
+        </div>
+      </template>
+
+      <template x-if="!['storico', 'mappa', 'demografia'].includes($store.selezione.modulo)">
         <div>
           <h2>Filtri</h2>
           <p class="vuoto">Il modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriverà nelle prossime fasi.</p>
@@ -150,7 +202,63 @@
           <button type="button" class="link" @click="$store.selezione.azzera()">Deseleziona</button>
         </div>
       </template>
-      <p class="vuoto" x-show="!$store.selezione.area && $store.selezione.modulo !== 'storico'">
+      <template x-if="$store.selezione.modulo === 'demografia'">
+        <div class="dettaglio-demografia">
+          <p class="errore" x-show="$store.demografia.erroreScheda" x-text="$store.demografia.erroreScheda"></p>
+          <template x-if="$store.demografia.scheda">
+            <div>
+              <table>
+                <thead><tr><th>Indicatore</th><th>Area</th><th>Torino</th></tr></thead>
+                <tbody>
+                  <template x-for="r in $store.demografia.scheda?.indicatori" :key="r.chiave">
+                    <tr :title="'Fonte: ' + r.fonte + (r.stima ? ' (stima)' : '')">
+                      <td><span x-text="r.nome"></span><span class="vuoto" x-show="r.stima"> *</span></td>
+                      <td class="num" x-text="$store.demografia.formato(r.valore, r.unita)"></td>
+                      <td class="num" x-text="$store.demografia.formato(r.citta, r.unita)"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+              <p class="nota">
+                Passa sopra una riga per vedere fonte e anno. * valore stimato ripartendo i redditi
+                dei CAP sulla popolazione. Per le sezioni elettorali i dati vengono dal censimento ISTAT
+                2021 e il confronto è con Torino nello stesso anno.
+              </p>
+              <p class="nota" x-show="$store.demografia.scheda?.nota" x-text="$store.demografia.scheda?.nota"></p>
+              <template x-if="$store.demografia.scheda?.piramide">
+                <div>
+                  <h3 class="titoletto">Piramide d'età (% dei residenti)</h3>
+                  <div class="contenitore-grafico" style="height: 340px"><canvas id="grafico-piramide" role="img"
+                       aria-label="Piramide d'età dell'area a confronto con Torino"></canvas></div>
+                  <p class="nota" x-text="'Fonte: ' + $store.demografia.scheda?.piramide?.fonte + '. Contorno: Torino.'"></p>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <div class="dispersione">
+            <h3 class="titoletto">Demografia e voto</h3>
+            <p class="avviso">
+              I dati descrivono i residenti di un'area, non chi ha votato: una correlazione tra un
+              indicatore e un risultato non dice come hanno votato le singole persone.
+            </p>
+            <p class="errore" x-show="$store.demografia.erroreDispersione" x-text="$store.demografia.erroreDispersione"></p>
+            <template x-if="$store.demografia.dispersione">
+              <div>
+                <div class="contenitore-grafico" style="height: 280px"><canvas id="grafico-dispersione" role="img"
+                     aria-label="Grafico di dispersione tra indicatore demografico e risultato elettorale"></canvas></div>
+                <p class="sottotitolo">
+                  <span x-text="$store.demografia.dispersione?.n"></span>
+                  <span x-text="$store.demografia.livello === 'sezione' ? 'sezioni' : 'circoscrizioni'"></span>,
+                  correlazione r = <strong x-text="formatoNumero($store.demografia.dispersione?.correlazione, 2)"></strong>
+                </p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </template>
+
+      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia'].includes($store.selezione.modulo)">
         Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.
       </p>
 

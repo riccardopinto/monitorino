@@ -1,9 +1,5 @@
 // Modulo "Storico elettorale": filtri, coropletica, dettaglio dell'area, confronti e flussi.
 (() => {
-  // Rampa sequenziale blu (quote, affluenza, voti) e scala divergente rosso-grigio-blu
-  // (variazioni), dalla palette di riferimento: chiaro = poco, scuro = tanto.
-  const SEQUENZIALE = ["#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5", "#256abf", "#184f95"];
-  const DIVERGENTE = ["#a82c2b", "#e34948", "#f3a9a8", "#f0efec", "#9ec5f4", "#3987e5", "#184f95"];
   const COLORE_AREA = "#2a78d6"; // slot 1
   const COLORE_CONFRONTO = "#eb6834"; // slot 2
 
@@ -35,30 +31,6 @@
       throw new Error(dettaglio);
     }
     return r.json();
-  }
-
-  function classi(valori, divergente) {
-    // Limiti delle classi: per le variazioni simmetrici intorno a zero.
-    const numeri = valori.filter((v) => v !== null && v !== undefined);
-    if (!numeri.length) return { limiti: [], colori: [] };
-    if (divergente) {
-      const m = Math.max(...numeri.map(Math.abs)) || 1;
-      const passo = m / 3.5;
-      const limiti = [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5].map((k) => k * passo);
-      return { limiti, colori: DIVERGENTE };
-    }
-    const min = Math.min(...numeri);
-    const max = Math.max(...numeri);
-    const n = SEQUENZIALE.length;
-    const passo = (max - min) / n || 1;
-    const limiti = Array.from({ length: n - 1 }, (_, i) => min + passo * (i + 1));
-    return { limiti, colori: SEQUENZIALE, min, max };
-  }
-
-  function coloreDi(scala, v) {
-    let i = 0;
-    while (i < scala.limiti.length && v >= scala.limiti[i]) i++;
-    return scala.colori[i];
   }
 
   document.addEventListener("alpine:init", () => {
@@ -140,7 +112,7 @@
           const r = await json(`/api/elezioni/${this.elezione}/mappa?${p}`);
           this.errore = null;
           const valori = Object.fromEntries(r.valori.map((v) => [v.codice, v.valore]));
-          const scala = classi(Object.values(valori), r.metrica === "variazione");
+          const scala = Scala.classi(Object.values(valori), r.metrica === "variazione");
           const unita = r.unita;
           const formato = (v) =>
             unita === "voti"
@@ -150,15 +122,8 @@
                 : `${fmt.format(v)}%`;
           this.unita = unita;
           this.citta = r.citta;
-          this.legenda = scala.colori.map((colore, i) => {
-            const da = i === 0 ? null : scala.limiti[i - 1];
-            const a = i < scala.limiti.length ? scala.limiti[i] : null;
-            const testo =
-              da === null ? `meno di ${formato(a)}` : a === null ? `da ${formato(da)}` : `${formato(da)} – ${formato(a)}`;
-            return { colore, testo };
-          });
-          if (!scala.limiti.length) this.legenda = [];
-          await window.MappaTorino.colora(this.livello, valori, (v) => coloreDi(scala, v), formato);
+          this.legenda = Scala.legenda(scala, formato);
+          await window.MappaTorino.colora(this.livello, valori, (v) => Scala.coloreDi(scala, v), formato);
         } catch (e) {
           this.errore = e.message;
           window.MappaTorino.pulisci();
