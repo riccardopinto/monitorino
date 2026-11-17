@@ -124,6 +124,9 @@
       statoMappa.nomiCircoscrizioni = Object.fromEntries(
         dati.features.map((f) => [f.properties.codice, f.properties.nome]),
       );
+      statoMappa.idCircoscrizioni = Object.fromEntries(
+        dati.features.map((f) => [f.properties.codice, f.properties.id]),
+      );
       livelli.circoscrizione = creaLivello("circoscrizione", dati).addTo(mappa);
       if (dati.features.length) mappa.fitBounds(livelli.circoscrizione.getBounds(), { padding: [12, 12] });
       else statoMappa.errore = "Nessuna circoscrizione nel database: eseguire app.ingest.circoscrizioni";
@@ -184,6 +187,17 @@
       caricamento: false,
       errore: null,
       nomiCircoscrizioni: {},
+      idCircoscrizioni: {},
+      selezionaCircoscrizione(codice) {
+        Alpine.store("selezione").seleziona({
+          id: this.idCircoscrizioni[codice],
+          tipo: "circoscrizione",
+          codice,
+          nome: this.nomiCircoscrizioni[codice],
+          circoscrizione: codice,
+          approssimata: false,
+        });
+      },
       alternaSezioni() {
         mostraSezioni(this.sezioniVisibili);
       },

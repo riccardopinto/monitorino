@@ -14,6 +14,7 @@
   <script defer src="/static/js/scale.js"></script>
   <script defer src="/static/js/storico.js"></script>
   <script defer src="/static/js/demografia.js"></script>
+  <script defer src="/static/js/temi.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body x-data>
@@ -172,7 +173,66 @@
         </div>
       </template>
 
-      <template x-if="!['storico', 'mappa', 'demografia'].includes($store.selezione.modulo)">
+      <template x-if="$store.selezione.modulo === 'temi'">
+        <div class="filtri-temi">
+          <h2>Temi</h2>
+          <label class="campo">Periodo
+            <select x-model.number="$store.temi.settimane" @change="$store.temi.aggiorna()">
+              <option value="1">ultima settimana</option>
+              <option value="2">ultime 2 settimane</option>
+              <option value="4">ultime 4 settimane</option>
+              <option value="8">ultime 8 settimane</option>
+              <option value="12">ultime 12 settimane</option>
+            </select>
+          </label>
+          <label class="campo">Tema in mappa
+            <select x-model="$store.temi.tema" @change="$store.temi.aggiornaMappa(); $store.temi.aggiornaDettaglio()">
+              <template x-for="t in $store.temi.matrice?.temi || []" :key="t">
+                <option :value="t" x-text="t" :selected="t === $store.temi.tema"></option>
+              </template>
+            </select>
+          </label>
+          <div class="legenda" x-show="$store.temi.legenda.length">
+            <template x-for="(c, i) in $store.temi.legenda" :key="i">
+              <div class="legenda-voce"><span class="campione" :style="'background:' + c.colore"></span><span x-text="c.testo"></span></div>
+            </template>
+            <div class="legenda-voce"><span class="campione nd"></span><span>nessun documento</span></div>
+          </div>
+
+          <h2>Classificazione</h2>
+          <template x-if="$store.temi.stato">
+            <p class="vuoto">
+              <strong x-text="$store.temi.stato.documenti"></strong> documenti raccolti,
+              <strong x-text="$store.temi.stato.da_classificare"></strong> da classificare.
+              <span x-show="$store.temi.stato.ultima_raccolta" x-text="'Ultima raccolta: ' + ($store.temi.stato.ultima_raccolta || '').replace('T', ' ')"></span>
+            </p>
+          </template>
+          <p class="nota">
+            Senza chiave API: scarica il prompt (fino a 150 documenti), incollalo in una nuova
+            chat, salva la risposta JSON in un file e caricalo qui. Ripeti finché restano
+            documenti da classificare.
+          </p>
+          <a class="pulsante" href="/api/temi/prompt" download
+             :class="{ disattivo: !$store.temi.stato?.da_classificare }">Scarica prompt</a>
+          <label class="pulsante secondario">
+            Carica JSON della risposta
+            <input type="file" accept=".json,.txt,application/json,text/plain" hidden @change="$store.temi.caricaJson($event)">
+          </label>
+          <p class="vuoto" x-show="$store.temi.caricamentoImport">importazione…</p>
+          <template x-if="$store.temi.esitoImport">
+            <p class="avviso">
+              Importati <span x-text="$store.temi.esitoImport.applicati"></span> documenti.
+              <span x-show="$store.temi.esitoImport.errori.length" x-text="$store.temi.esitoImport.errori.length + ' voci non valide.'"></span>
+              <span x-show="$store.temi.esitoImport.sconosciuti.length" x-text="$store.temi.esitoImport.sconosciuti.length + ' id sconosciuti.'"></span>
+              <span x-show="$store.temi.esitoImport.gia_classificati" x-text="$store.temi.esitoImport.gia_classificati + ' già classificati.'"></span>
+            </p>
+          </template>
+          <p class="errore" x-show="$store.temi.erroreImport" x-text="$store.temi.erroreImport"></p>
+          <p class="errore" x-show="$store.temi.errore" x-text="$store.temi.errore"></p>
+        </div>
+      </template>
+
+      <template x-if="!['storico', 'mappa', 'demografia', 'temi'].includes($store.selezione.modulo)">
         <div>
           <h2>Filtri</h2>
           <p class="vuoto">Il modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriverà nelle prossime fasi.</p>
@@ -258,7 +318,69 @@
         </div>
       </template>
 
-      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia'].includes($store.selezione.modulo)">
+      <template x-if="$store.selezione.modulo === 'temi'">
+        <div class="dettaglio-temi">
+          <h3 class="titoletto" x-text="'Temi più discussi · ' + ($store.temi.matrice ? 'dal ' + new Date($store.temi.matrice.dal).toLocaleDateString('it-IT') : '')"></h3>
+          <template x-if="$store.temi.matrice && !$store.temi.matrice.temi.length">
+            <p class="vuoto">Nessun documento classificato nel periodo. Usa “Scarica prompt” nella colonna di sinistra.</p>
+          </template>
+          <template x-if="$store.temi.matrice?.temi.length">
+            <div class="tabella-scorrevole">
+              <table class="matrice-temi">
+                <thead>
+                  <tr>
+                    <th>Tema</th>
+                    <template x-for="c in $store.temi.circoscrizioni" :key="c"><th class="num" x-text="c"></th></template>
+                    <th class="num">To</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template x-for="t in $store.temi.matrice.temi" :key="t">
+                    <tr :class="{ scelto: t === $store.temi.tema }">
+                      <th class="tema" @click="$store.temi.scegli(t, null)" x-text="t"></th>
+                      <template x-for="c in $store.temi.circoscrizioni" :key="c">
+                        <td class="num cella" @click="$store.temi.scegli(t, c)"
+                            :style="'background:' + $store.temi.coloreCella(t, c)"
+                            :class="{ chiaro: $store.temi.testoChiaro(t, c) }"
+                            :title="$store.temi.cella(t, c) ? 'Circoscrizione ' + c + ': ' + $store.temi.cella(t, c).volume + ' documenti, sentiment ' + $store.temi.fmtSentiment($store.temi.cella(t, c).sentiment) : 'Circoscrizione ' + c + ': nessun documento'"
+                            x-text="$store.temi.cella(t, c)?.volume || ''"></td>
+                      </template>
+                      <td class="num" :title="'Sentiment medio ' + $store.temi.fmtSentiment($store.temi.matrice.citta[t].sentiment)"
+                          x-text="$store.temi.matrice.citta[t].volume"></td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </template>
+          <p class="nota">
+            Numero di documenti per tema e circoscrizione (colonna To: tutta la città, compresi i
+            documenti senza un luogo riconosciuto). Passa sopra una cella per il sentiment medio
+            (da -2 a +2); clic per selezionare tema e area. Per i social si contano solo numeri
+            aggregati.
+          </p>
+
+          <h3 class="titoletto" x-text="'Andamento · ' + ($store.selezione.area ? 'circoscrizione ' + ($store.selezione.area.tipo === 'sezione' ? $store.selezione.area.circoscrizione : $store.selezione.area.codice) : 'Torino')"></h3>
+          <template x-if="$store.temi.andamento?.serie.length">
+            <div class="contenitore-grafico" style="height: 220px"><canvas id="grafico-andamento" role="img"
+                 aria-label="Andamento settimanale dei temi principali"></canvas></div>
+          </template>
+          <p class="vuoto" x-show="!$store.temi.andamento?.serie.length">Nessun dato per l'area nel periodo.</p>
+
+          <h3 class="titoletto" x-text="'Articoli recenti' + ($store.temi.tema ? ' · ' + $store.temi.tema : '')"></h3>
+          <ul class="articoli">
+            <template x-for="a in $store.temi.articoli" :key="a.url">
+              <li>
+                <a :href="a.url" target="_blank" rel="noopener noreferrer" x-text="a.titolo"></a>
+                <span class="vuoto" x-text="a.testata + ', ' + new Date(a.data).toLocaleDateString('it-IT')"></span>
+              </li>
+            </template>
+          </ul>
+          <p class="vuoto" x-show="!$store.temi.articoli.length">Nessun articolo per questa scelta.</p>
+        </div>
+      </template>
+
+      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia', 'temi'].includes($store.selezione.modulo)">
         Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.
       </p>
 
