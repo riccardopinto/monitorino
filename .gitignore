@@ -14,8 +14,10 @@ __pycache__/
 # Database e dati scaricati (non vanno nel repository)
 data/*.duckdb
 data/*.duckdb.wal
-data/raw/
-data/processed/
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
 backup/
 
 # Report generati

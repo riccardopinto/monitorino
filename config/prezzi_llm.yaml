@@ -1,0 +1,31 @@
+# Prezzi dell'API Anthropic in USD per milione di token, usati da app/llm/client.py
+# per stimare il costo di ogni chiamata. Verificare sulla pagina prezzi ufficiale
+# (platform.claude.com) prima di ogni fase che usa l'LLM e aggiornare qui.
+# Le chiavi devono coincidere con i nomi dei modelli in .env.
+# Fonte: documentazione Anthropic, novembre 2026.
+
+valuta: USD
+sconto_batch: 0.5          # la Message Batches API costa il 50% in meno
+
+modelli:
+  claude-opus-5-5:
+    input: 4.00
+    output: 20.00
+    cache_lettura: 0.20
+    cache_scrittura_5m: 5.00     # 1,25 x input
+    cache_scrittura_1h: 8.00     # 2 x input
+  claude-sonnet-5-5:
+    input: 2.00
+    output: 10.00
+    cache_lettura: 0.10
+    cache_scrittura_5m: 2.50
+    cache_scrittura_1h: 4.00
+  claude-haiku-5-5:
+    input: 0.10
+    output: 0.50
+    cache_lettura: 0.01          # DA VERIFICARE: stimato a 0,1 x input
+    cache_scrittura_5m: 0.125
+    cache_scrittura_1h: 0.20
+    soglia_prompt_lungo: 100000  # oltre 100K token di prompt la tariffa sale
+    input_lungo: 0.50
+    output_lungo: 2.50

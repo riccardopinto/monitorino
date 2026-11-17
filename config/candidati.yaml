@@ -6,8 +6,8 @@ sindaco:
   nome: Guido Saracco
   lista: Torino Innova          # verificare nome definitivo e liste collegate
   ruolo: candidato sindaco
-  tono_di_voce: ""              # es. concreto, tecnico, diretto; frasi brevi
-  temi_prioritari: []
+  tono_di_voce: "tecnico, concreto, innovatore"              # es. concreto, tecnico, diretto; frasi brevi
+  temi_prioritari: [lavoro, ambiente, innovazione]
   posizioni_approvate: []       # una voce per posizione, con fonte (programma, intervista, data)
   da_evitare: []
   testi_di_esempio: []          # post o discorsi già pubblicati, per imitarne lo stile
@@ -17,8 +17,8 @@ consiglio_comunale:
     lista: "Torino Innova"
     ruolo: candidato al Consiglio comunale
     circoscrizione_di_riferimento: "3,4"
-    tono_di_voce: ""
-    temi_prioritari: []
+    tono_di_voce: "concreto, ottimista, innovativo"
+    temi_prioritari: [commercio, lavoro, innovazione, eventi, sostenibilità]
     posizioni_approvate: []
     da_evitare: []
     testi_di_esempio: []
@@ -27,7 +27,12 @@ consiglio_comunale:
 circoscrizioni:
   "1": []
   "2": []
-  "3": [Riccardo Pinto]
+  "3":
+    - nome: Riccardo Pinto
+      lista: Torino Innova
+      ruolo: candidato consigliere
+      temi_prioritari: []
+      posizioni_approvate: []
   "4": []
   "5": []
   "6": []
