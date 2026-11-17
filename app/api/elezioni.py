@@ -137,11 +137,14 @@ def mappa(
 def dettaglio_area(
     eid: int,
     con: Con,
-    livello: LivelloMappa,
-    codice: str,
+    livello: an.Livello,
+    codice: str = "Torino",
     tipo: an.Tipo = "area",
 ) -> dict:
-    """Risultati dell'area selezionata e media cittadina, per il pannello dettagli."""
+    """Risultati dell'area selezionata e media cittadina, per il pannello dettagli.
+
+    Con livello "citta" (codice "Torino") restituisce i risultati di tutta la città.
+    """
     _esiste(con, eid)
     area = an.risultati(con, eid, livello, tipo)
     area = area[area.area == codice]

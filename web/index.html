@@ -6,10 +6,12 @@
   <title>Monitorino · Torino 2027</title>
   <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/static/css/app.css">
-  <!-- I defer si eseguono in ordine: Leaflet, poi gli store, poi Alpine che li avvia -->
+  <!-- I defer si eseguono in ordine: librerie, poi gli store, poi Alpine che li avvia -->
   <script defer src="/static/vendor/leaflet/leaflet.js"></script>
+  <script defer src="/static/vendor/chart.umd.min.js"></script>
   <script defer src="/static/js/app.js"></script>
   <script defer src="/static/js/mappa.js"></script>
+  <script defer src="/static/js/storico.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body x-data>
@@ -33,6 +35,7 @@
   </header>
 
   <main class="zone">
+    <!-- ============ FILTRI ============ -->
     <aside class="zona filtri" aria-label="Filtri">
       <h2>Livelli</h2>
       <label class="interruttore">
@@ -45,18 +48,96 @@
         corrispondenza civico–sezione del Comune (2017). Non sono confini ufficiali.
       </p>
 
-      <h2>Filtri</h2>
-      <p class="vuoto">I filtri del modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriveranno nelle prossime fasi.</p>
+      <template x-if="$store.selezione.modulo === 'storico'">
+        <div class="filtri-storico" x-data>
+          <h2>Storico elettorale</h2>
+          <label class="campo">Elezione
+            <select x-model.number="$store.storico.elezione" @change="$store.storico.cambia()">
+              <template x-for="e in $store.storico.elezioni" :key="e.id">
+                <option :value="e.id" x-text="e.nome" :selected="e.id === $store.storico.elezione"></option>
+              </template>
+            </select>
+          </label>
+          <label class="campo">Mappa per
+            <select x-model="$store.storico.livello" @change="$store.storico.aggiornaMappa()">
+              <option value="circoscrizione">Circoscrizioni</option>
+              <option value="sezione">Sezioni elettorali</option>
+            </select>
+          </label>
+          <label class="campo">Metrica
+            <select x-model="$store.storico.metrica" @change="$store.storico.aggiornaMappa()">
+              <template x-for="(nome, m) in $store.storico.NOMI_METRICA" :key="m">
+                <option :value="m" x-text="nome" :disabled="m === 'variazione' && !$store.storico.confronto"
+                        :selected="m === $store.storico.metrica"></option>
+              </template>
+            </select>
+          </label>
+          <template x-if="$store.storico.metrica !== 'affluenza'">
+            <div>
+              <label class="campo">Raggruppa per
+                <select x-model="$store.storico.tipo" @change="$store.storico.cambia()">
+                  <template x-for="t in $store.storico.tipiDisponibili" :key="t">
+                    <option :value="t" x-text="$store.storico.NOMI_TIPO[t]" :selected="t === $store.storico.tipo"></option>
+                  </template>
+                </select>
+              </label>
+              <label class="campo">Soggetto
+                <select x-model="$store.storico.soggetto" @change="$store.storico.aggiornaMappa()">
+                  <template x-for="s in $store.storico.soggettiDisponibili" :key="s">
+                    <option :value="s" x-text="s" :selected="s === $store.storico.soggetto"></option>
+                  </template>
+                </select>
+              </label>
+            </div>
+          </template>
+          <label class="campo">Confronta con l'elezione
+            <select x-model="$store.storico.confronto" @change="$store.storico.cambia()">
+              <option value="">nessuna</option>
+              <template x-for="e in $store.storico.elezioni" :key="e.id">
+                <option :value="String(e.id)" x-text="e.nome" :disabled="e.id === $store.storico.elezione"
+                        :selected="String(e.id) === $store.storico.confronto"></option>
+              </template>
+            </select>
+          </label>
+
+          <div class="legenda" x-show="$store.storico.legenda.length">
+            <h3 x-text="$store.storico.NOMI_METRICA[$store.storico.metrica]
+                        + ($store.storico.metrica === 'affluenza' ? '' : ' · ' + $store.storico.soggetto)"></h3>
+            <template x-for="(c, i) in $store.storico.legenda" :key="i">
+              <div class="legenda-voce"><span class="campione" :style="'background:' + c.colore"></span><span x-text="c.testo"></span></div>
+            </template>
+            <div class="legenda-voce"><span class="campione nd"></span><span>nessun dato</span></div>
+            <p class="vuoto" x-show="$store.storico.citta !== null">
+              Torino: <strong x-text="formatoNumero($store.storico.citta) + ($store.storico.unita === 'punti' ? ' punti' : '%')"></strong>
+            </p>
+          </div>
+          <p class="vuoto" x-show="$store.storico.caricamento">caricamento…</p>
+          <p class="errore" x-show="$store.storico.errore" x-text="$store.storico.errore"></p>
+          <p class="nota">
+            I dati descrivono sezioni e aree, non persone: una correlazione tra un'area e un
+            risultato non dice come hanno votato i singoli residenti.
+          </p>
+        </div>
+      </template>
+
+      <template x-if="$store.selezione.modulo !== 'storico' && $store.selezione.modulo !== 'mappa'">
+        <div>
+          <h2>Filtri</h2>
+          <p class="vuoto">Il modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriverà nelle prossime fasi.</p>
+        </div>
+      </template>
     </aside>
 
+    <!-- ============ MAPPA ============ -->
     <section class="zona mappa" aria-label="Mappa">
       <div class="mappa-leaflet" x-data="mappaTorino"></div>
     </section>
 
+    <!-- ============ DETTAGLI ============ -->
     <aside class="zona dettagli" aria-label="Dettagli">
       <h2>Dettagli</h2>
       <template x-if="$store.selezione.area">
-        <div>
+        <div class="intestazione-area">
           <p class="area-tipo" x-text="$store.selezione.area.tipo === 'sezione' ? 'Sezione elettorale' : 'Circoscrizione'"></p>
           <p class="area-nome"
              x-text="$store.selezione.area.tipo === 'sezione' ? $store.selezione.area.nome : 'Circoscrizione ' + $store.selezione.area.codice"></p>
@@ -69,7 +150,105 @@
           <button type="button" class="link" @click="$store.selezione.azzera()">Deseleziona</button>
         </div>
       </template>
-      <p class="vuoto" x-show="!$store.selezione.area">Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.</p>
+      <p class="vuoto" x-show="!$store.selezione.area && $store.selezione.modulo !== 'storico'">
+        Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.
+      </p>
+
+      <template x-if="$store.selezione.modulo === 'storico'">
+        <div class="dettaglio-storico">
+          <p class="area-nome" x-show="!$store.selezione.area">Torino</p>
+          <p class="vuoto" x-show="!$store.selezione.area">Seleziona un'area sulla mappa per vederne i risultati.</p>
+          <template x-if="$store.storico.dettaglio">
+            <div>
+              <p class="sottotitolo" x-text="($store.storico.corrente?.nome || '') + ' · ' + $store.storico.NOMI_TIPO[$store.storico.tipo]"></p>
+              <p>Affluenza: <strong x-text="formatoNumero($store.storico.dettaglio.affluenza) + '%'"></strong>
+                <span class="vuoto" x-show="$store.selezione.area">
+                  (Torino <span x-text="formatoNumero($store.storico.dettaglio.affluenza_citta) + '%'"></span>)
+                </span>
+              </p>
+
+              <label class="campo" x-show="!$store.storico.confronto && $store.selezione.area?.tipo === 'circoscrizione'">
+                Affianca a
+                <select x-model="$store.storico.areaConfronto" @change="$store.storico.aggiornaDettaglio()">
+                  <option value="">media cittadina</option>
+                  <template x-for="n in ['1','2','3','4','5','6','7','8']" :key="n">
+                    <option :value="n" x-text="'Circoscrizione ' + n" :disabled="n === $store.selezione.area?.codice"></option>
+                  </template>
+                </select>
+              </label>
+              <p class="errore" x-show="$store.storico.dettaglioConfronto?.errore"
+                 x-text="'Confronto non disponibile: ' + $store.storico.dettaglioConfronto?.errore"></p>
+
+              <div class="contenitore-grafico"><canvas id="grafico-storico" role="img"
+                   aria-label="Grafico a barre delle quote per soggetto"></canvas></div>
+
+              <details class="tabella-dati">
+                <summary>Tabella dei risultati</summary>
+                <table>
+                  <thead><tr><th>Soggetto</th><th>Voti</th><th>Quota</th><th>Torino</th></tr></thead>
+                  <tbody>
+                    <template x-for="r in $store.storico.dettaglio.righe" :key="r.soggetto">
+                      <tr>
+                        <td x-text="r.soggetto"></td>
+                        <td class="num" x-text="formatoNumero(r.voti, 0)"></td>
+                        <td class="num" x-text="formatoNumero(r.quota) + '%'"></td>
+                        <td class="num" x-text="formatoNumero(r.quota_citta) + '%'"></td>
+                      </tr>
+                    </template>
+                  </tbody>
+                </table>
+              </details>
+            </div>
+          </template>
+
+          <template x-if="$store.storico.confronto">
+            <div class="flussi">
+              <h3>Flussi stimati</h3>
+              <p class="sottotitolo">
+                da <span x-text="$store.storico.nomeConfronto"></span> a
+                <span x-text="$store.storico.corrente?.nome"></span>
+                <span x-text="$store.selezione.area ? '· circoscrizione ' + ($store.selezione.area.tipo === 'sezione' ? $store.selezione.area.circoscrizione : $store.selezione.area.codice) : '· tutta la città'"></span>
+              </p>
+              <p class="errore" x-show="$store.storico.erroreFlussi" x-text="$store.storico.erroreFlussi"></p>
+              <template x-if="$store.storico.flussi">
+                <div>
+                  <div class="tabella-scorrevole">
+                    <table class="matrice">
+                      <thead>
+                        <tr><th>da \ a</th>
+                          <template x-for="c in $store.storico.flussi.a" :key="c"><th x-text="c"></th></template>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <template x-for="(riga, i) in $store.storico.flussi.quote" :key="i">
+                          <tr>
+                            <th x-text="$store.storico.flussi.da[i]"></th>
+                            <template x-for="(v, j) in riga" :key="j">
+                              <td class="num" :style="'background: rgba(42,120,214,' + (v / 100 * 0.55) + ')'"
+                                  :title="formatoNumero($store.storico.flussi.elettori[i][j], 0) + ' elettori stimati'"
+                                  x-text="formatoNumero(v, 0) + '%'"></td>
+                            </template>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="nota">
+                    <strong x-text="$store.storico.flussi.etichetta"></strong>.
+                    Ogni riga indica come si sarebbero distribuiti, nell'elezione di arrivo, gli
+                    elettori di quell'area politica. Sezioni usate:
+                    <span x-text="$store.storico.flussi.n_sezioni"></span>.
+                    R² per colonna:
+                    <template x-for="(v, k) in $store.storico.flussi.r2" :key="k">
+                      <span x-text="k + ' ' + formatoNumero(v, 2) + '; '"></span>
+                    </template>
+                  </p>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
     </aside>
   </main>
 </body>

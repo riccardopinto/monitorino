@@ -1,19 +1,23 @@
 // Modulo mappa: Leaflet con i livelli circoscrizioni e sezioni.
 // La selezione vive in $store.selezione, condivisa da tutti i moduli; la mappa la legge
 // e la scrive. Gli oggetti Leaflet restano fuori dagli store Alpine (niente proxy reattivi).
+// Gli altri moduli colorano la mappa con window.MappaTorino.colora(...) (coropletica).
 (() => {
   const CENTRO_TORINO = [45.07, 7.68];
+  const BORDO = { circoscrizione: "#1f5fa8", sezione: "#475569" };
   const STILI = {
-    circoscrizione: { color: "#1f5fa8", weight: 2, opacity: 0.9, fillColor: "#1f5fa8", fillOpacity: 0.06 },
-    sezione: { color: "#475569", weight: 0.7, opacity: 0.8, fillColor: "#475569", fillOpacity: 0.02 },
-    selezionata: { color: "#c2410c", weight: 3, opacity: 1, fillColor: "#f97316", fillOpacity: 0.25 },
+    circoscrizione: { color: BORDO.circoscrizione, weight: 2, opacity: 0.9, fillColor: "#1f5fa8", fillOpacity: 0.06 },
+    sezione: { color: BORDO.sezione, weight: 0.7, opacity: 0.8, fillColor: "#475569", fillOpacity: 0.02 },
   };
+  const SELEZIONE = { color: "#c2410c", weight: 3, opacity: 1 };
 
   let mappa = null;
   let sfondo = null;
   const livelli = {}; // tipo -> L.GeoJSON
-  const perId = new Map(); // id area -> layer Leaflet
+  const perId = new Map(); // id area -> { layer, tipo, props }
   let evidenziato = null;
+  // Coropletica attiva: { tipo, valori: {codice: numero}, colore: fn(v) -> hex, formato: fn(v) -> testo }
+  let colorazione = null;
 
   async function caricaGeojson(tipo) {
     const risposta = await fetch(`/api/aree?tipo=${tipo}`);
@@ -32,44 +36,73 @@
     });
   }
 
+  function valore(tipo, codice) {
+    if (!colorazione || colorazione.tipo !== tipo) return undefined;
+    return colorazione.valori[codice];
+  }
+
+  function stile(tipo, props) {
+    const base = { ...STILI[tipo] };
+    if (colorazione) {
+      if (colorazione.tipo === tipo) {
+        const v = valore(tipo, props.codice);
+        base.fillColor = v === undefined || v === null ? "#d9d9d6" : colorazione.colore(v);
+        base.fillOpacity = 0.78;
+        if (tipo === "sezione") base.color = "#ffffff";
+      } else {
+        base.fillOpacity = 0; // l'altro livello resta solo come contorno
+      }
+    }
+    if (evidenziato && evidenziato.props.id === props.id) Object.assign(base, SELEZIONE);
+    return base;
+  }
+
+  function testoValore(tipo, codice) {
+    const v = valore(tipo, codice);
+    if (v === undefined) return "";
+    return `<br><strong>${v === null ? "n.d." : colorazione.formato(v)}</strong>`;
+  }
+
   function creaLivello(tipo, dati) {
     return L.geoJSON(dati, {
-      style: () => STILI[tipo],
+      style: (f) => stile(tipo, f.properties),
       onEachFeature: (f, layer) => {
         const p = f.properties;
-        perId.set(p.id, layer);
+        perId.set(p.id, { layer, tipo, props: p });
         if (tipo === "circoscrizione") {
           layer.bindTooltip(`<strong>${p.codice}</strong>`, {
             permanent: true,
             direction: "center",
             className: "etichetta-circoscrizione",
           });
-          // Nome completo al passaggio del mouse; autoPan spento per non spostare la mappa.
-          layer.bindPopup(`Circoscrizione ${p.codice}<br>${p.nome}`, {
+          // Nome completo e valore al passaggio del mouse; autoPan spento per non spostare la mappa.
+          layer.bindPopup(() => `Circoscrizione ${p.codice}<br>${p.nome}${testoValore(tipo, p.codice)}`, {
             closeButton: false,
             autoPan: false,
           });
           layer.on("mouseover", (e) => layer.openPopup(e.latlng));
           layer.on("mouseout", () => layer.closePopup());
         } else {
-          layer.bindTooltip(`Sezione ${p.codice}`, { sticky: true, className: "etichetta-sezione" });
+          layer.bindTooltip(() => `Sezione ${p.codice}${testoValore(tipo, p.codice)}`, {
+            sticky: true,
+            className: "etichetta-sezione",
+          });
         }
         layer.on("click", () => seleziona(p));
       },
     });
   }
 
-  function evidenzia(area) {
-    if (evidenziato) {
-      evidenziato.layer.setStyle(STILI[evidenziato.tipo]);
-      evidenziato = null;
+  function ridisegna() {
+    for (const [tipo, livello] of Object.entries(livelli)) {
+      livello.eachLayer((layer) => layer.setStyle(stile(tipo, layer.feature.properties)));
     }
-    if (!area) return;
-    const layer = perId.get(area.id);
-    if (!layer || !mappa.hasLayer(layer)) return;
-    layer.setStyle(STILI.selezionata);
-    layer.bringToFront();
-    evidenziato = { layer, tipo: area.tipo };
+    if (evidenziato && mappa.hasLayer(evidenziato.layer)) evidenziato.layer.bringToFront();
+  }
+
+  function evidenzia(area) {
+    evidenziato = area ? perId.get(area.id) || null : null;
+    ridisegna();
   }
 
   async function avvia(elemento) {
@@ -94,6 +127,7 @@
       livelli.circoscrizione = creaLivello("circoscrizione", dati).addTo(mappa);
       if (dati.features.length) mappa.fitBounds(livelli.circoscrizione.getBounds(), { padding: [12, 12] });
       else statoMappa.errore = "Nessuna circoscrizione nel database: eseguire app.ingest.circoscrizioni";
+      statoMappa.pronta = true;
     } catch (e) {
       statoMappa.errore = "Impossibile caricare le circoscrizioni: " + e.message;
     }
@@ -126,8 +160,26 @@
     evidenzia(Alpine.store("selezione").area);
   }
 
+  // API per gli altri moduli.
+  window.MappaTorino = {
+    async colora(tipo, valori, colore, formato) {
+      if (tipo === "sezione" && !Alpine.store("mappa").sezioniVisibili) {
+        Alpine.store("mappa").sezioniVisibili = true;
+        await mostraSezioni(true);
+      }
+      colorazione = { tipo, valori, colore, formato };
+      ridisegna();
+    },
+    pulisci() {
+      if (!colorazione) return;
+      colorazione = null;
+      ridisegna();
+    },
+  };
+
   document.addEventListener("alpine:init", () => {
     Alpine.store("mappa", {
+      pronta: false,
       sezioniVisibili: false,
       caricamento: false,
       errore: null,

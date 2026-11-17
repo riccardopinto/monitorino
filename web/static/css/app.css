@@ -11,7 +11,7 @@
   --errore: #b91c1c;
   --errore-sfondo: #fee2e2;
   --larghezza-filtri: 260px;
-  --larghezza-dettagli: 340px;
+  --larghezza-dettagli: 380px;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--testo);
 }
@@ -101,6 +101,37 @@ body {
 .area-tipo { font-size: 0.8rem; color: var(--testo-tenue); margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
 
 .vuoto { color: var(--testo-tenue); font-size: 0.9rem; line-height: 1.4; }
+
+/* --- filtri e moduli --- */
+.campo { display: flex; flex-direction: column; gap: 4px; font-size: 0.8rem; color: var(--testo-tenue); margin-bottom: 10px; }
+.campo select {
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--testo);
+  padding: 6px 8px;
+  border: 1px solid var(--bordo);
+  border-radius: 6px;
+  background: var(--superficie);
+  max-width: 100%;
+}
+.legenda { margin-top: 14px; }
+.legenda h3, .flussi h3 { font-size: 0.85rem; margin: 0 0 6px; }
+.legenda-voce { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; margin: 2px 0; }
+.campione { width: 14px; height: 14px; border-radius: 3px; flex: none; border: 1px solid rgba(0,0,0,0.08); }
+.campione.nd { background: #d9d9d6; }
+.nota { font-size: 0.78rem; line-height: 1.4; color: var(--testo-tenue); margin: 12px 0 0; }
+.errore { font-size: 0.8rem; color: var(--errore); }
+.sottotitolo { font-size: 0.8rem; color: var(--testo-tenue); margin: 4px 0 8px; }
+
+.intestazione-area { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--bordo); }
+.contenitore-grafico { position: relative; width: 100%; margin: 8px 0; }
+.tabella-dati summary { cursor: pointer; font-size: 0.85rem; color: var(--accento); margin: 8px 0; }
+.dettagli table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+.dettagli th, .dettagli td { padding: 4px 6px; border-bottom: 1px solid var(--bordo); text-align: left; vertical-align: top; }
+.dettagli td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.flussi { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--bordo); }
+.tabella-scorrevole { overflow-x: auto; }
+.matrice th { font-weight: 600; font-size: 0.72rem; }
 .area-nome { font-size: 1.1rem; font-weight: 600; }
 .link { border: 0; background: none; color: var(--accento); padding: 0; cursor: pointer; font: inherit; }
 
