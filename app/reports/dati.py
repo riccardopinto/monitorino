@@ -142,7 +142,7 @@ def scheda(con, p: dict, **meta) -> dict:
              "colore": grafici.AREA},
             {"nome": "Torino", "valori": [e["affluenza_citta"] for e in storico],
              "colore": "#8a94a6"},
-        ], "affluenza %"))  # fmt: skip
+        ], "affluenza %", da_zero=False))  # fmt: skip
         ultima = next((e for e in reversed(storico) if e["tipo"] == "comunali"), storico[-1])
         ctx["ultima"] = ultima
         ctx["grafici"].append(grafici.barre("g-ultima", AREE_POLITICHE, [

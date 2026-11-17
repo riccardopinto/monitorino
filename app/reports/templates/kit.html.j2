@@ -1,0 +1,36 @@
+{% extends "base.html.j2" %}
+{% block contenuto %}
+<section>
+  <h2>{{ candidato.nome }}</h2>
+  <p>{{ candidato.ruolo or "Candidato" }}{% if candidato.lista %}, lista {{ candidato.lista }}{% endif %}.
+    Contenuti approvati dal {{ dal | data_it }} al {{ al | data_it }}: <b>{{ n }}</b>.</p>
+  {% if candidato.tono_di_voce or candidato.temi_prioritari %}
+  <table><tbody>
+    {% if candidato.tono_di_voce %}<tr><th style="width: 40mm">Tono di voce</th><td>{{ candidato.tono_di_voce }}</td></tr>{% endif %}
+    {% if candidato.temi_prioritari %}<tr><th>Temi prioritari</th><td>{{ candidato.temi_prioritari | join(", ") }}</td></tr>{% endif %}
+  </tbody></table>
+  {% endif %}
+  <p class="avviso">Se un contenuto viene usato come annuncio a pagamento valgono gli obblighi di
+    etichettatura e trasparenza del Regolamento UE 2024/900 sulla pubblicità politica.</p>
+</section>
+
+{% if gruppi %}
+{% for formato, voci in gruppi | dictsort %}
+<section{% if not loop.first %} class="nuova-pagina"{% endif %}>
+  <h2>{{ formato }}</h2>
+  {% for c in voci %}
+  <div class="blocco" style="margin-bottom: 5mm">
+    <p class="nota">#{{ c.id }} · {{ c.data | data_it }}{% if c.canale %} · {{ c.canale }}{% endif %}{% if c.autore %} · {{ c.autore }}{% endif %}</p>
+    <p class="testo-lungo" style="border-left: 3px solid #c9ced6; padding-left: 3mm">{{ c.testo }}</p>
+    {% if c.fonti %}<p class="nota">Fonti: {{ c.fonti | join(" · ") }}</p>{% endif %}
+  </div>
+  {% endfor %}
+</section>
+{% endfor %}
+{% else %}
+<section>
+  <p class="vuoto">Nessun contenuto approvato nel periodo. I contenuti si creano e si approvano
+    nello Studio contenuti.</p>
+</section>
+{% endif %}
+{% endblock %}

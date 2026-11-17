@@ -1,0 +1,88 @@
+{% extends "base.html.j2" %}
+{% from "_macro.html.j2" import grafico_id, inferenza, valore %}
+{% block contenuto %}
+<section>
+  <h2>La circoscrizione</h2>
+  <img class="mappa piccola" src="{{ mappa }}" alt="Mappa di Torino con la circoscrizione {{ codice }} in evidenza">
+  <p><b>Circoscrizione {{ codice }}</b>: {{ nome }}.</p>
+  <p>Questa scheda riunisce i dati disponibili sull'area: profilo demografico dei residenti,
+    risultati delle consultazioni dal {{ storico[0].data.year if storico else "–" }} a oggi e
+    temi più discussi nelle ultime settimane. Ogni dato è confrontato con la media di Torino.</p>
+  {{ inferenza() }}
+</section>
+
+<section class="nuova-pagina">
+  <h2>Profilo demografico</h2>
+  {% if demografia %}
+  <table>
+    <thead><tr><th>Indicatore</th><th class="num">Circ. {{ codice }}</th><th class="num">Torino</th><th>Fonte</th></tr></thead>
+    <tbody>
+    {% for r in demografia.indicatori %}
+      <tr><td>{{ r.nome }}{% if r.stima %} *{% endif %}</td>
+          <td class="num">{{ valore(r.valore, r.unita) }}</td>
+          <td class="num">{{ valore(r.citta, r.unita) }}</td>
+          <td class="nota">{{ r.fonte }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">* valore stimato ripartendo sulla popolazione i redditi dei CAP che attraversano l'area.</p>
+  {% if demografia.piramide %}
+  <h3>Piramide d'età (% dei residenti)</h3>
+  {{ grafico_id(grafici, "g-piramide") }}
+  <p class="nota">Barre piene: circoscrizione {{ codice }}. Contorno: Torino. Fonte: {{ demografia.piramide.fonte }}.</p>
+  {% endif %}
+  {% else %}
+  <p class="vuoto">Nessun dato demografico caricato per questa circoscrizione.</p>
+  {% endif %}
+</section>
+
+<section class="nuova-pagina">
+  <h2>Storico elettorale</h2>
+  {% if storico %}
+  <h3>{{ ultima.nome }}: voti per area politica</h3>
+  {{ grafico_id(grafici, "g-ultima") }}
+  <h3>Tutte le consultazioni (circoscrizione e, tra parentesi, Torino)</h3>
+  <table>
+    <thead><tr><th>Consultazione</th>
+      {% for a in aree_politiche %}<th class="num">{{ a }}</th>{% endfor %}
+      <th class="num">Affluenza</th></tr></thead>
+    <tbody>
+    {% for e in storico %}
+      <tr><td>{{ e.nome }}</td>
+        {% for a in aree_politiche %}
+        <td class="num">{{ e.quote.get(a, 0) | num }}%<br><span class="nota">({{ e.quote_citta.get(a, 0) | num }}%)</span></td>
+        {% endfor %}
+        <td class="num">{{ e.affluenza | num }}%<br><span class="nota">({{ e.affluenza_citta | num }}%)</span></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">Quote sui voti validi alle liste, raggruppate per area politica secondo
+    config/aree_politiche.yaml (solo primo turno). Per le sezioni la circoscrizione è quella
+    dell'anno della consultazione.</p>
+  <h3>Affluenza</h3>
+  {{ grafico_id(grafici, "g-affluenza") }}
+  {% else %}
+  <p class="vuoto">Nessun risultato elettorale caricato.</p>
+  {% endif %}
+</section>
+
+<section class="blocco">
+  <h2>Temi più discussi</h2>
+  <p>Notizie locali classificate per tema dal {{ temi.dal | data_it }}{% if temi.nuovi %};
+    nuovi questa settimana: <b>{{ temi.nuovi | join("; ") }}</b>{% endif %}.</p>
+  {% if temi.celle %}
+  <table>
+    <thead><tr><th>Tema</th><th class="num">Documenti</th><th class="num">Sentiment medio</th></tr></thead>
+    <tbody>
+    {% for c in temi.celle %}
+      <tr><td>{{ c.tema }}</td><td class="num">{{ c.volume }}</td><td class="num">{{ c.sentiment | segno }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">Sentiment da −2 (molto negativo) a +2 (molto positivo). Contano solo i documenti
+    attribuiti alla circoscrizione; i temi esclusi dallo staff non compaiono.</p>
+  {% else %}
+  <p class="vuoto">Nessun documento classificato per questa circoscrizione nel periodo.</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends "base.html.j2" %}
+{% from "_macro.html.j2" import grafico_id, inferenza, valore %}
+{% block contenuto %}
+{% if modo == "elezioni" %}
+<section>
+  <h2>{{ da.nome }} e {{ a.nome }}</h2>
+  <p>Confronto dei voti per area politica in <b>{{ nome_area }}</b> tra
+    {{ da.nome }} ({{ da.data | data_it }}) e {{ a.nome }} ({{ a.data | data_it }}).
+    Affluenza: {{ affluenza.da | num }}% e {{ affluenza.a | num }}%
+    ({{ (affluenza.a - affluenza.da) | segno if affluenza.a is not none and affluenza.da is not none else "–" }} punti).</p>
+  {{ grafico_id(grafici, "g-quote") }}
+  <table>
+    <thead><tr><th>Area politica</th><th class="num">{{ da.nome }}</th><th class="num">{{ a.nome }}</th><th class="num">Variazione (punti)</th></tr></thead>
+    <tbody>
+    {% for r in righe %}
+      <tr><td>{{ r.soggetto }}</td><td class="num">{{ r.da | num }}%</td><td class="num">{{ r.a | num }}%</td>
+          <td class="num">{{ r.variazione | segno }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">Il confronto è tra quote, non tra voti assoluti: elezioni di tipo diverso
+    hanno elettorati e affluenze diverse.</p>
+  {{ inferenza() }}
+</section>
+
+<section class="nuova-pagina">
+  <h2>Variazione per circoscrizione: {{ soggetto_mappa }}</h2>
+  <img class="mappa" src="{{ mappa }}" alt="Mappa della variazione per circoscrizione">
+  <table>
+    <thead><tr><th>Circoscrizione</th><th class="num">Variazione (punti)</th></tr></thead>
+    <tbody>{% for c, v in variazioni_circ %}<tr><td>{{ c }}</td><td class="num">{{ v | segno }}</td></tr>{% endfor %}</tbody>
+  </table>
+</section>
+
+<section class="blocco">
+  <h2>Flussi stimati</h2>
+  {% if flussi %}
+  <p class="avviso">{{ flussi.etichetta }}. Stima su {{ flussi.n_sezioni }} sezioni.</p>
+  <table>
+    <thead><tr><th>da \ a</th>{% for c in flussi.a %}<th class="num">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for riga in flussi.quote %}
+      <tr><th>{{ flussi.da[loop.index0] }}</th>
+      {% for v in riga %}<td class="num">{{ v | num(0) }}%</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">Ogni riga indica come si sarebbero distribuiti, in {{ a.nome }}, gli elettori di
+    quell'area politica in {{ da.nome }}. R² per colonna:
+    {% for k, v in flussi.r2.items() %}{{ k }} {{ v | num(2) }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>
+  {% else %}
+  <p class="vuoto">Flussi non disponibili: {{ errore_flussi }}</p>
+  {% endif %}
+</section>
+
+{% else %}
+<section>
+  <h2>Circoscrizioni {{ area1 }} e {{ area2 }} · {{ elezione.nome }}</h2>
+  <img class="mappa piccola" src="{{ mappa }}" alt="Mappa con le due circoscrizioni in evidenza">
+  <p><b>{{ area1 }}</b>: {{ nome1 }}.<br><b>{{ area2 }}</b>: {{ nome2 }}.</p>
+  <p>Affluenza: {{ affluenza.a1 | num }}% (circ. {{ area1 }}), {{ affluenza.a2 | num }}%
+    (circ. {{ area2 }}), {{ affluenza.citta | num }}% (Torino).</p>
+  {{ inferenza() }}
+  <div style="clear: both"></div>
+  {{ grafico_id(grafici, "g-quote") }}
+  <table>
+    <thead><tr><th>Area politica</th><th class="num">Circ. {{ area1 }}</th><th class="num">Circ. {{ area2 }}</th><th class="num">Torino</th><th class="num">Differenza</th></tr></thead>
+    <tbody>
+    {% for r in righe %}
+      <tr><td>{{ r.soggetto }}</td><td class="num">{{ r.a1 | num }}%</td><td class="num">{{ r.a2 | num }}%</td>
+          <td class="num">{{ r.citta | num }}%</td><td class="num">{{ (r.a2 - r.a1) | segno }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">Differenza = circoscrizione {{ area2 }} meno circoscrizione {{ area1 }}, in punti.</p>
+</section>
+
+<section class="blocco">
+  <h2>Profilo demografico a confronto</h2>
+  {% if indicatori %}
+  <table>
+    <thead><tr><th>Indicatore</th><th class="num">Circ. {{ area1 }}</th><th class="num">Circ. {{ area2 }}</th><th class="num">Torino</th></tr></thead>
+    <tbody>
+    {% for r in indicatori %}
+      <tr><td>{{ r.nome }}</td><td class="num">{{ valore(r.valore, r.unita) }}</td>
+          <td class="num">{{ valore(r.valore2, r.unita) }}</td><td class="num">{{ valore(r.citta, r.unita) }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="vuoto">Dati demografici non disponibili per entrambe le circoscrizioni.</p>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}

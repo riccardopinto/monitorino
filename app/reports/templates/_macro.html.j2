@@ -8,3 +8,11 @@
   una correlazione tra un'area e un risultato non dice come hanno votato le singole persone
   (inferenza ecologica).</p>
 {%- endmacro %}
+
+{% macro grafico_id(grafici, id) -%}
+{% for g in grafici if g.id == id %}{{ grafico(g) }}{% endfor %}
+{%- endmacro %}
+
+{% macro valore(v, unita) -%}
+{% if v is none %}–{% elif unita == "%" %}{{ v | num }}%{% elif unita in ("euro", "persone") %}{{ v | num(0) }}{% if unita == "euro" %} €{% endif %}{% else %}{{ v | num }}{% endif %}
+{%- endmacro %}

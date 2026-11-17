@@ -1,0 +1,79 @@
+{% extends "base.html.j2" %}
+{% from "_macro.html.j2" import grafico_id %}
+{% block contenuto %}
+<section>
+  <h2>In sintesi</h2>
+  {% if citta %}
+  <p>Nella settimana dal {{ settimana | data_it }} al {{ fine | data_it }} il tema più discusso
+    a Torino è stato <b>{{ principale }}</b> ({{ citta[0].volume }} documenti).
+    Temi classificati: {{ citta | length }}.</p>
+  <table>
+    <thead><tr><th>Tema</th><th class="num">Documenti</th><th class="num">Fonti</th><th class="num">Sentiment</th></tr></thead>
+    <tbody>
+    {% for r in citta %}
+      <tr><td>{{ r.tema }}</td><td class="num">{{ r.volume }}</td><td class="num">{{ r.n_fonti or "–" }}</td>
+          <td class="num">{{ r.sentiment | segno }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <p class="nota">Sentiment medio da −2 a +2. La riga cittadina comprende anche i documenti
+    senza un luogo riconosciuto.{% if esclusi %} Temi esclusi dallo staff: {{ esclusi | join("; ") }}.{% endif %}</p>
+  {% else %}
+  <p class="vuoto">Nessun documento classificato in questa settimana.</p>
+  {% endif %}
+</section>
+
+{% if citta %}
+<section class="nuova-pagina">
+  <h2>Temi per circoscrizione</h2>
+  <table>
+    <thead><tr><th>Tema</th>{% for c in circoscrizioni %}<th class="num">{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in matrice %}
+      <tr><td>{{ r.tema }}</td>
+      {% for c in circoscrizioni %}{% set v = r.celle.get(c) %}
+        <td class="num{% if cella_scura(v) %} chiaro{% endif %}" style="background: {{ colore_cella(v) or 'transparent' }}">{{ v or "" }}</td>
+      {% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h3>Temi nuovi della settimana</h3>
+  {% if nuovi %}
+  <table>
+    <thead><tr><th>Circoscrizione</th><th class="num">Temi</th><th>Nuovi (assenti nelle 4 settimane precedenti)</th></tr></thead>
+    <tbody>{% for c, r in nuovi | dictsort %}<tr><td>{{ c }}</td><td class="num">{{ r.temi }}</td><td>{{ r.nuovi | join("; ") or "–" }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<p class="vuoto">Nessun tema nuovo.</p>{% endif %}
+  <h3>Mappa: {{ principale }}</h3>
+  <img class="mappa" src="{{ mappa }}" alt="Mappa dei documenti sul tema principale per circoscrizione">
+</section>
+
+<section class="blocco">
+  <h2>Andamento delle ultime 8 settimane</h2>
+  {{ grafico_id(grafici, "g-andamento") }}
+  <p class="nota">Documenti per settimana a livello cittadino, per i cinque temi principali della settimana.</p>
+</section>
+{% endif %}
+
+<section class="nuova-pagina">
+  <h2>Articoli della settimana</h2>
+  {% if articoli %}
+  <table>
+    <thead><tr><th>Tema</th><th>Titolo</th><th>Testata</th><th>Data</th></tr></thead>
+    <tbody>
+    {% for a in articoli %}
+      <tr><td class="nota">{{ a.tema }}</td><td><a href="{{ a.url }}">{{ a.titolo }}</a></td>
+          <td>{{ a.testata }}</td><td class="num">{{ a.data.day }}/{{ a.data.month }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="vuoto">Nessun articolo classificato nella settimana.</p>
+  {% endif %}
+  {% if social %}
+  <h3>Social (solo conteggi)</h3>
+  <table><tbody>{% for s in social %}<tr><td>{{ s.tema }}</td><td class="num">{{ s.n }}</td></tr>{% endfor %}</tbody></table>
+  <p class="nota">Dai social si conservano solo numeri aggregati: nessun contenuto, autore o link.</p>
+  {% endif %}
+</section>
+{% endblock %}

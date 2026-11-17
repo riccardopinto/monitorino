@@ -77,7 +77,14 @@ def divergenti(id_: str, etichette: list[str], valori: list[float], titolo: str 
     return _grafico(id_, "bar", dati, opzioni, max(110, len(etichette) * 22 + 60))
 
 
-def linee(id_: str, etichette: list[str], serie: list[dict], titolo_valori: str = "") -> dict:
+def linee(
+    id_: str,
+    etichette: list[str],
+    serie: list[dict],
+    titolo_valori: str = "",
+    *,
+    da_zero: bool = True,
+) -> dict:
     dati = {
         "labels": etichette,
         "datasets": [
@@ -87,7 +94,7 @@ def linee(id_: str, etichette: list[str], serie: list[dict], titolo_valori: str 
         ],
     }  # fmt: skip
     opzioni = {
-        "scales": _assi(False, 0, None, titolo_valori),
+        "scales": _assi(False, 0 if da_zero else None, None, titolo_valori),
         "plugins": {"legend": {"position": "bottom", "labels": {"boxWidth": 10,
                                                                 "font": {"size": 10}}}},
     }  # fmt: skip

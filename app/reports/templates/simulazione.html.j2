@@ -1,0 +1,128 @@
+{% extends "base.html.j2" %}
+{% from "_macro.html.j2" import grafico_id %}
+{% block contenuto %}
+<section>
+  <h2>La proposta</h2>
+  <p class="dicitura" style="margin-top: 0">{{ dicitura }}</p>
+  <table>
+    <tbody>
+      <tr><th style="width: 34mm">Proposta{% if par.proposta_b %} A{% endif %}</th><td>{{ run.proposta }}</td></tr>
+      {% if par.proposta_b %}<tr><th>Proposta B</th><td>{{ par.proposta_b }}</td></tr>{% endif %}
+      <tr><th>Presentata da</th><td>{{ par.candidato_nome }}</td></tr>
+      <tr><th>Aree</th><td>{% for a in run.aree %}{{ a }} ({{ nomi_circ.get(a, "") }}){% if not loop.last %}; {% endif %}{% endfor %}</td></tr>
+      <tr><th>Panel</th><td>{{ run.segmenti | length }} segmenti × {{ par.persone_per_segmento }} persone sintetiche per area
+        ({{ (run.segmenti | length) * par.persone_per_segmento * (run.aree | length) }} in tutto)</td></tr>
+      <tr><th>Pesi</th><td>aree di voto {{ "comunali 2021" if run.variante_pesi == "comunali" else "media europee 2024 e politiche 2022" }}</td></tr>
+      <tr><th>Esecuzione</th><td>{{ run.modello }} · seed {{ run.seed }} · {{ run.timestamp | data_it }} · costo {{ (run.costo or 0) | num(2) }} €</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Metodo in breve</h3>
+  <p>Un modello linguistico interpreta un panel di persone sintetiche, generato dal codice a
+    partire dal seed: per ogni segmento (fascia d'età × condizione × area di voto abituale) e per
+    ogni circoscrizione. Ogni persona dà un gradimento da 1 a 5, l'effetto sul voto (allontana,
+    nessuno, avvicina), i timori e una frase di reazione. I risultati si pesano sulla
+    composizione stimata dell'elettorato di ciascuna area e le aree sui residenti maggiorenni.
+    Il <b>saldo netto</b> è la quota che si avvicina al candidato meno quella che se ne allontana.
+    Metodo completo in docs/metodo_simulazione.md (versione {{ par.versione_metodo }}).</p>
+</section>
+
+{% for v in varianti %}
+{% set a = ag[v] %}
+<section class="nuova-pagina">
+  <h2>Risultati{% if varianti | length > 1 %} · versione {{ v | upper }}{% endif %}</h2>
+  <div class="kpi">
+    <div><b>{{ a.totale.saldo | segno }}</b><span>saldo netto (punti)</span></div>
+    <div><b>{{ a.totale.favorevoli_pct | num(0) }}%</b><span>favorevoli (gradimento 4-5)</span></div>
+    <div><b>{{ a.totale.gradimento_medio | num(2) }}</b><span>gradimento medio (1-5), dev. {{ a.totale.gradimento_dev | num(2) }}</span></div>
+  </div>
+  <p class="nota">Si avvicina {{ a.totale.avvicina_pct | num }}%, nessun effetto {{ a.totale.nessuno_pct | num }}%,
+    si allontana {{ a.totale.allontana_pct | num }}%.</p>
+  <h3>Saldo netto per area di voto</h3>
+  {{ grafico_id(grafici, "g-voto-" ~ v) }}
+  {% for area in run.aree %}
+  <div class="blocco">
+  <h3>Saldo netto per segmento · circoscrizione {{ area }}</h3>
+  {{ grafico_id(grafici, "g-seg-" ~ v ~ "-" ~ area) }}
+  </div>
+  {% endfor %}
+  {% if run.aree | length > 1 %}
+  <h3>Per circoscrizione</h3>
+  <table>
+    <thead><tr><th>Circoscrizione</th><th class="num">Peso</th><th class="num">Gradimento</th><th class="num">Favorevoli</th><th class="num">Saldo</th></tr></thead>
+    <tbody>{% for r in a.aree %}<tr><td>{{ r.area }} · {{ nomi_circ.get(r.area, "") }}</td><td class="num">{{ (r.peso * 100) | num }}%</td>
+      <td class="num">{{ r.gradimento_medio | num(2) }}</td><td class="num">{{ r.favorevoli_pct | num }}%</td><td class="num">{{ r.saldo | segno }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if mappa %}
+<section class="blocco">
+  <h2>Mappa del saldo netto</h2>
+  <img class="mappa" src="{{ mappa }}" alt="Mappa del saldo netto per circoscrizione">
+</section>
+{% endif %}
+
+{% if ag.ab %}
+<section class="blocco">
+  <h2>Confronto A/B</h2>
+  <p>Stesso panel per le due versioni (disegno appaiato): la differenza non dipende da chi è stato interpellato.</p>
+  <table>
+    <thead><tr><th></th><th class="num">A</th><th class="num">B</th><th class="num">B − A</th></tr></thead>
+    <tbody>
+      <tr><td>Saldo netto</td><td class="num">{{ ag.a.totale.saldo | segno }}</td><td class="num">{{ ag.b.totale.saldo | segno }}</td><td class="num">{{ ag.ab.totale.saldo | segno }}</td></tr>
+      <tr><td>Favorevoli %</td><td class="num">{{ ag.a.totale.favorevoli_pct | num }}</td><td class="num">{{ ag.b.totale.favorevoli_pct | num }}</td><td class="num">{{ ag.ab.totale.favorevoli_pct | segno }}</td></tr>
+      <tr><td>Gradimento</td><td class="num">{{ ag.a.totale.gradimento_medio | num(2) }}</td><td class="num">{{ ag.b.totale.gradimento_medio | num(2) }}</td><td class="num">{{ ag.ab.totale.gradimento_medio | segno(2) }}</td></tr>
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<section class="nuova-pagina">
+  <h2>Obiezioni e parole</h2>
+  {% set a = ag.a %}
+  <h3>Obiezioni ricorrenti{% if varianti | length > 1 %} (versione A){% endif %}</h3>
+  {% if a.obiezioni %}
+  <table>
+    <thead><tr><th>Obiezione</th><th class="num">Quota dei timori</th><th class="num">Menzioni</th></tr></thead>
+    <tbody>{% for o in a.obiezioni %}<tr><td>{{ o.obiezione }}{% if o.varianti %}<br><span class="nota">anche: {{ o.varianti | join("; ") }}</span>{% endif %}</td>
+      <td class="num">{{ o.quota_pct | num(0) }}%</td><td class="num">{{ o.menzioni }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% else %}<p class="vuoto">Nessun timore espresso.</p>{% endif %}
+  <h3>Parole ricordate</h3>
+  <p>{% for p in a.parole_ricordate %}{{ p.parola }} ({{ p.volte }}){% if not loop.last %} · {% endif %}{% else %}–{% endfor %}</p>
+  <h3>Frasi rappresentative</h3>
+  <p class="avviso">Frasi di persone sintetiche scritte dal modello: non sono dichiarazioni di
+    elettori reali e non vanno citate come tali.</p>
+  <table>
+    <tbody>
+    {% for f in a.frasi[:24] %}
+      <tr><td class="citazione">«{{ f.testo }}»</td>
+          <td class="nota" style="width: 52mm">circ. {{ f.area }} · {{ run.segmenti[f.indice].fascia_eta }} {{ run.segmenti[f.indice].condizione }}, {{ run.segmenti[f.indice].area_di_voto }} · {{ f.tipo }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="blocco">
+  <h2>Sintesi</h2>
+  {% if sintesi %}<p class="testo-lungo">{{ sintesi }}</p>
+  <p class="nota">Sintesi scritta da un modello linguistico a partire dai soli numeri aggregati.</p>
+  {% else %}<p class="vuoto">Sintesi non ancora generata.</p>{% endif %}
+</section>
+
+<section class="blocco">
+  <h2>Limiti e affidabilità</h2>
+  <p class="dicitura" style="margin-top: 0">{{ dicitura }}</p>
+  <ul>{% for l in limiti %}<li>{{ l }}</li>{% endfor %}</ul>
+  <p><b>Affidabilità:</b> {{ affidabilita.testo }}</p>
+  {% if calibrazioni %}
+  <table>
+    <thead><tr><th>Sondaggio</th><th>Metrica</th><th class="num">Simulato</th><th class="num">Reale</th><th class="num">Scarto</th></tr></thead>
+    <tbody>{% for c in calibrazioni %}<tr><td>{{ c.fonte_sondaggio }}{% if c.data_sondaggio %}, {{ c.data_sondaggio | data_it }}{% endif %}</td>
+      <td>{{ c.metrica }}</td><td class="num">{{ c.valore_simulato | num }}</td><td class="num">{{ c.valore_reale | num }}</td><td class="num">{{ c.scarto | segno }}</td></tr>{% endfor %}</tbody>
+  </table>
+  {% endif %}
+</section>
+{% endblock %}
