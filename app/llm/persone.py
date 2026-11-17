@@ -17,12 +17,23 @@ import pandas as pd
 TRATTI = [
     ["ha figli piccoli", "ha figli adolescenti", "non ha figli"],
     ["usa i mezzi pubblici ogni giorno", "si sposta soprattutto in auto", "va in bici"],
-    ["vive in affitto", "è proprietario di casa", "vive in una casa popolare"],
+    ["vive in affitto", "vive in una casa di proprietà", "vive in una casa popolare",
+     "vive con i genitori"],
     ["ha un'attività o lavora nel quartiere", "lavora fuori Torino"],
     ["fa volontariato nel quartiere", "frequenta la parrocchia", "frequenta il circolo sportivo"],
     ["segue poco la politica", "è molto informato sulla politica locale"],
     ["assiste un genitore anziano", "porta il cane ai giardini", "va al mercato rionale"],
-]
+]  # fmt: skip
+LAVORATORI = ("lavoratore dipendente", "lavoratore autonomo")
+# Tratti ammessi solo per certe età o condizioni, per non creare profili inverosimili.
+VINCOLI = {
+    "ha figli piccoli": lambda eta, cond: 22 <= eta <= 50 and cond != "studente",
+    "ha figli adolescenti": lambda eta, cond: 35 <= eta <= 62,
+    "vive con i genitori": lambda eta, cond: eta <= 34,
+    "ha un'attività o lavora nel quartiere": lambda eta, cond: cond in LAVORATORI,
+    "lavora fuori Torino": lambda eta, cond: cond in LAVORATORI,
+    "assiste un genitore anziano": lambda eta, cond: 35 <= eta <= 75,
+}
 ETA_MAX = 95
 
 
@@ -85,14 +96,30 @@ def genera_panel(
         donna = rng.random() < quota_f
         pesi = pesi_f if donna else pesi_m
         eta_p = rng.choices(eta, weights=pesi if sum(pesi) else None)[0]
-        gruppi = rng.sample(TRATTI, 2)
         panel.append(
             PersonaSintetica(
                 codice=f"P{i + 1:02d}",
                 sesso="donna" if donna else "uomo",
                 eta=eta_p,
                 quartiere=rng.choice(nomi_quartieri),
-                tratti=tuple(rng.choice(g) for g in gruppi),
+                tratti=_tratti(rng, eta_p, segmento["condizione"]),
             )
         )
     return panel
+
+
+def compatibile(tratto: str, eta: int, condizione: str) -> bool:
+    vincolo = VINCOLI.get(tratto)
+    return vincolo is None or vincolo(eta, condizione)
+
+
+def _tratti(rng: random.Random, eta: int, condizione: str, quanti: int = 2) -> tuple[str, ...]:
+    """Due tratti da gruppi diversi, compatibili con età e condizione."""
+    scelti = []
+    for gruppo in rng.sample(TRATTI, len(TRATTI)):
+        ammessi = [t for t in gruppo if compatibile(t, eta, condizione)]
+        if ammessi:
+            scelti.append(rng.choice(ammessi))
+        if len(scelti) == quanti:
+            break
+    return tuple(scelti)

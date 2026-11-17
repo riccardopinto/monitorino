@@ -42,3 +42,17 @@ def test_eta_senza_dati_demografici():
     p = persone.genera_panel(1, {**SEGMENTO, "fascia_eta": "65+"}, "3", 5, vuota, vuota, "")
     assert all(65 <= x.eta <= persone.ETA_MAX for x in p)
     assert p[0].quartiere == "circoscrizione 3"
+
+
+def test_tratti_compatibili_con_eta_e_condizione():
+    studenti = {"fascia_eta": "18-29", "condizione": "studente", "area_di_voto": "M5S"}
+    for x in persone.genera_panel(3, studenti, "3", 300, POP_M, POP_F, NOME):
+        assert len(x.tratti) == 2
+        assert "lavora fuori Torino" not in x.tratti
+        assert "ha un'attività o lavora nel quartiere" not in x.tratti
+        assert "ha figli adolescenti" not in x.tratti and "ha figli piccoli" not in x.tratti
+    anziani = {"fascia_eta": "65+", "condizione": "pensionato", "area_di_voto": "M5S"}
+    for x in persone.genera_panel(3, anziani, "3", 300, POP_M, POP_F, NOME):
+        assert "vive con i genitori" not in x.tratti and "ha figli piccoli" not in x.tratti
+        if "assiste un genitore anziano" in x.tratti:
+            assert x.eta <= 75

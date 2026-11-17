@@ -114,6 +114,12 @@ def _id_elezione(con: duckdb.DuckDBPyConnection, chiave: str) -> int | None:
     return riga[0] if riga else None
 
 
+def _num(v: float, segno: bool = False) -> str:
+    """Numero all'italiana: virgola decimale, spazio per le migliaia."""
+    testo = f"{v:+,.1f}" if segno else f"{v:,.1f}"
+    return testo.replace(",", " ").replace(".", ",")
+
+
 def contesto_area(con: duckdb.DuckDBPyConnection, circ: str, nome: str) -> str:
     """Testo di contesto della circoscrizione: demografia, voto 2021, temi recenti."""
     parti = [f"Circoscrizione {circ} di Torino ({nome})."]
@@ -129,9 +135,7 @@ def contesto_area(con: duckdb.DuckDBPyConnection, circ: str, nome: str) -> str:
         if v is None or t.empty:
             continue
         unita = "" if ind.unita in ("persone",) else f" {ind.unita}"
-        righe.append(
-            f"- {ind.nome}: {v:,.1f}{unita} (Torino {t.iloc[0]:,.1f}{unita})".replace(",", " ")
-        )
+        righe.append(f"- {ind.nome}: {_num(v)}{unita} (Torino {_num(t.iloc[0])}{unita})")
     if righe:
         parti.append(
             "Dati demografici (fonti: Comune di Torino 2025, ISTAT 2021, MEF 2024):\n"
@@ -143,12 +147,11 @@ def contesto_area(con: duckdb.DuckDBPyConnection, circ: str, nome: str) -> str:
         r = an.risultati(con, eid, "circoscrizione", "area")
         r = r[r.area == circ].sort_values("voti", ascending=False)
         aff = an.affluenza(con, eid, "circoscrizione").set_index("area")["affluenza"].get(circ)
-        quote = ", ".join(f"{s} {q * 100:.1f}%" for s, q in zip(r.soggetto, r.quota, strict=True))
-        parti.append(
-            f"Comunali 2021, voti di lista per area politica: {quote}. Affluenza {aff * 100:.1f}%."
-            if aff is not None
-            else f"Comunali 2021: {quote}."
-        )
+        quote = ", ".join(f"{s} {_num(q * 100)}%" for s, q in zip(r.soggetto, r.quota, strict=True))
+        testo = f"Comunali 2021, voti di lista per area politica: {quote}."
+        if aff is not None:
+            testo += f" Affluenza {_num(aff * 100)}%."
+        parti.append(testo)
 
     oggi = date.today()
     dal = oggi - timedelta(days=oggi.weekday()) - timedelta(weeks=SETTIMANE_TEMI - 1)
@@ -161,7 +164,10 @@ def contesto_area(con: duckdb.DuckDBPyConnection, circ: str, nome: str) -> str:
         [circ, dal],
     ).fetchall()
     if temi:
-        elenco = "; ".join(f"{t} ({n} notizie, sentiment {s:+.1f})" for t, n, s in temi)
+        elenco = "; ".join(
+            f"{t} ({n} {'notizia' if n == 1 else 'notizie'}, sentiment {_num(s, segno=True)})"
+            for t, n, s in temi
+        )
         parti.append(f"Temi più discussi nelle ultime {SETTIMANE_TEMI} settimane: {elenco}.")
     else:
         parti.append(

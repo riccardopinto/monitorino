@@ -74,7 +74,7 @@ Dal seed, con `random.Random(seed)`, il codice genera il profilo di ogni persona
 - sesso, con quote dalla popolazione della circoscrizione;
 - età esatta dentro la fascia del segmento, secondo la distribuzione per età della circoscrizione;
 - quartiere della circoscrizione;
-- un tratto preso da un elenco fisso (es. "ha figli piccoli", "usa i mezzi pubblici", "ha un'attività in zona").
+- due tratti presi da gruppi diversi di un elenco fisso (es. "ha figli piccoli", "usa i mezzi pubblici ogni giorno", "lavora fuori Torino"), compatibili con età e condizione: niente figli piccoli per gli studenti, figli adolescenti solo tra 35 e 62 anni, "vive con i genitori" solo fino a 34 anni, "lavora fuori Torino" e "ha un'attività nel quartiere" solo per i lavoratori, "assiste un genitore anziano" tra 35 e 75 anni (`app/llm/persone.py`).
 
 Stesso seed vuol dire stesso panel e stesso prompt. **Le risposte del modello possono comunque variare tra un run e l'altro**: con la versione attuale dell'API Anthropic il parametro `temperature` non si può impostare, quindi la ripetibilità riguarda il panel e i prompt, non le risposte. Il valore salvato per la temperatura è "non usata".
 
@@ -145,6 +145,13 @@ Quando esce un sondaggio reale sullo stesso tema, lo si collega a una simulazion
 - valore simulato, valore reale, fonte del sondaggio.
 
 Lo scarto va in `calibrazione`. L'interfaccia mostra un **indice di affidabilità**: numero di calibrazioni e scarto medio assoluto in punti percentuali. Senza calibrazioni mostra "affidabilità non stimata".
+
+Dettagli (`app/analysis/calibrazione.py`):
+- metriche confrontabili: % favorevoli, % che si avvicina, % che si allontana, saldo netto (tutte in punti, sul totale del run o su una circoscrizione, per la versione A o B);
+- giudizio solo da 3 confronti in su: scarto medio fino a 5 punti "buona", fino a 10 "discreta", oltre "bassa";
+- se lo scarto medio con segno supera 3 punti, l'interfaccia dice se le simulazioni tendono a sovrastimare o sottostimare.
+
+L'indice descrive gli scarti passati, non garantisce la precisione delle simulazioni successive.
 
 ### 10. Limiti da dichiarare in ogni risultato
 

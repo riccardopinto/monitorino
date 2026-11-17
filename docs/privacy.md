@@ -25,7 +25,7 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 | T2 | Demografia per area | aggregati statistici pubblici | — | da verificare | durata del progetto | attivo dalla Fase 3 |
 | T3 | Raccolta news locali | titolo, URL, data, sommario del feed (max 300 caratteri); nessun testo integrale | persone citate negli articoli | da verificare | da definire | attivo dalla Fase 4 |
 | T4 | Raccolta social pubblici | testo senza autore né identificativi, poi solo aggregati | autori dei contenuti pubblici | da verificare | testo ≤ 30 giorni, aggregati per la durata del progetto | pronto, spento (servono credenziali) |
-| T5 | Simulazioni del laboratorio messaggi | proposte, persone sintetiche, risultati aggregati | nessuno (dati sintetici) | da verificare | da definire | non attivo (Fase 5) |
+| T5 | Simulazioni del laboratorio messaggi | proposte, persone sintetiche, risultati aggregati, sondaggi pubblicati per la calibrazione | nessuno (dati sintetici e aggregati) | da verificare | da definire | attivo dalla Fase 5 |
 | T6 | Bozze di contenuti | testi, fonti, autore della bozza | staff di campagna | da verificare | da definire | non attivo (Fase 6) |
 | T7 | Utenti, accessi e audit | nome utente, ruolo, azioni, orari | staff di campagna | da verificare | da definire | non attivo (Fase 8) |
 | T8 | Registro consumi API LLM | modulo, modello, token, costo, utente | staff di campagna | da verificare | da definire | struttura creata, campo `utente` vuoto fino alla Fase 8 |
@@ -95,3 +95,17 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
   - Un testo anonimizzato può comunque contenere riferimenti a persone: per questo si cancella e in interfaccia non compare mai. Per i social l'interfaccia mostra solo conteggi aggregati.
 - **Flusso di classificazione via chat**: il prompt esportato contiene titoli, sommari e, se i social sono attivi, i testi anonimizzati. Incollarlo in una chat significa inviare questi contenuti al fornitore della chat, come avviene con l'API. Usare un account di lavoro con le impostazioni di conservazione e addestramento verificate dal consulente, e non incollare prompt che contengano dati personali.
 - **Fornitori**: si aggiungono le piattaforme social (Reddit, Google/YouTube, Bluesky), quando attivate, e il fornitore della chat usato per la classificazione. Da riportare nella sezione "Fornitori".
+
+### Fase 5 — Laboratorio messaggi
+
+- **T5 attivo**. Le simulazioni non trattano dati personali:
+  - le persone del panel sono **sintetiche**, generate dal codice a partire dal seed: sesso, età, quartiere e due tratti presi da un elenco fisso. Non corrispondono a persone reali e non derivano da dati individuali;
+  - il contesto del prompt contiene solo **aggregati** per circoscrizione: indicatori demografici, quote di voto 2021 per area politica, conteggi dei temi;
+  - i pesi dei segmenti vengono dagli aggregati della Fase 3 (popolazione per età e condizione, voti per area). Nessun elettore è profilato e l'unità minima resta la circoscrizione.
+- **Segmenti e pubblicità politica**: i segmenti servono a scrivere messaggi migliori, non a scegliere destinatari di annunci. L'interfaccia non esporta liste di persone o di segmenti per piattaforme pubblicitarie, e il limite è scritto in ogni risultato (Regolamento UE 2024/900).
+- **Dicitura e limiti**: ogni risposta dell'API del laboratorio e ogni schermata dei risultati riporta "Simulazione IA, non è un sondaggio" e l'elenco dei limiti del metodo.
+- **Frasi di reazione**: sono generate dal modello per persone inventate. L'interfaccia le presenta come tali e non vanno usate come citazioni di elettori reali. Il prompt della sintesi riceve solo numeri aggregati, non le frasi.
+- **Contenuto conservato in `simulazione`**: proposta, parametri, panel, prompt di contesto, risposte grezze del modello, aggregati, sintesi e costo. La proposta può contenere riferimenti a persone o soggetti reali (es. un centro sociale), come qualsiasi testo di campagna: conservazione da definire con il consulente insieme alle bozze della Fase 6.
+- **Calibrazione**: si registrano solo valori pubblicati di sondaggi (fonte, data, metrica, valore), non dati dei rispondenti.
+- **Flusso via chat**: il prompt incollato nella chat contiene proposta, profilo pubblico del candidato, aggregati dell'area e panel sintetico; valgono le stesse cautele sul fornitore della chat indicate per la Fase 4.
+- **Costi**: le simulazioni via API passano da `app/llm/client.py` (tetto mensile e conferma sopra `SOGLIA_CONFERMA_RUN_EUR`); quelle in chat hanno costo registrato zero.
