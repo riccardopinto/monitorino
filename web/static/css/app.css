@@ -74,13 +74,13 @@ body {
 .mappa { padding: 0; position: relative; }
 
 .segnaposto {
-  height: 100%;
+  position: absolute;
+  inset: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   border: 2px dashed var(--bordo);
-  margin: 16px;
   border-radius: 8px;
   color: var(--testo-tenue);
 }

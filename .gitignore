@@ -32,3 +32,4 @@ Thumbs.db
 
 # Impostazioni locali di Claude Code
 .claude/settings.local.json
+.claude/launch.json
