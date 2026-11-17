@@ -44,3 +44,12 @@ segmenti_default:
   - {fascia_eta: "18-29", condizione: lavoratore dipendente, area_di_voto: astensione abituale}
 
 persone_per_segmento: 10
+
+# Base elettorale dei pesi per area di voto (calcolati in Fase 3, tabella segmento_peso).
+# Due varianti selezionabili; i valori sono chiavi di app/ingest/elezioni/consultazioni.py.
+# Con più elezioni si fa la media semplice delle quote, area per area.
+pesi_voto:
+  attiva: comunali
+  varianti:
+    comunali: [comunali_2021]
+    nazionali: [europee_2024, camera_2022]

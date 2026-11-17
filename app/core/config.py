@@ -90,6 +90,17 @@ class SegmentoDefinizione(_Modello):
     area_di_voto: str
 
 
+class PesiVoto(_Modello):
+    attiva: str
+    varianti: dict[str, list[str]]
+
+    @model_validator(mode="after")
+    def _attiva_esiste(self) -> PesiVoto:
+        if self.attiva not in self.varianti:
+            raise ValueError(f"variante attiva {self.attiva!r} non definita")
+        return self
+
+
 class Segmenti(_Modello):
     circoscrizioni: dict[str, str]
     fasce_eta: list[str]
@@ -97,6 +108,7 @@ class Segmenti(_Modello):
     area_di_voto: list[str]
     segmenti_default: list[SegmentoDefinizione]
     persone_per_segmento: int = Field(gt=0)
+    pesi_voto: PesiVoto
 
     @model_validator(mode="after")
     def _segmenti_coerenti(self) -> Segmenti:
