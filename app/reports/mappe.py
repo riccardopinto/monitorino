@@ -118,11 +118,12 @@ def coropletica(
     return _png(fig)
 
 
-def evidenzia(con: duckdb.DuckDBPyConnection, codice: str) -> str:
-    """Torino con la circoscrizione indicata in evidenza."""
+def evidenzia(con: duckdb.DuckDBPyConnection, codici: str | dict[str, str]) -> str:
+    """Torino con una o più circoscrizioni in evidenza ({codice: colore} per più aree)."""
+    colori_aree = {codici: EVIDENZA} if isinstance(codici, str) else codici
     gdf = circoscrizioni(con)
     fig, ax = plt.subplots(figsize=(4.2, 4.0))
-    colori = [EVIDENZA if c == codice else "#eeeeec" for c in gdf.codice]
+    colori = [colori_aree.get(c, "#eeeeec") for c in gdf.codice]
     gdf.plot(ax=ax, color=colori, edgecolor=BORDO, linewidth=0.8)
     _etichette(ax, gdf)
     ax.set_axis_off()

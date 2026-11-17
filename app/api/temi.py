@@ -96,22 +96,32 @@ def _r(v):
 def riepilogo_aree(con: Con, settimane: Annotated[int, Query(ge=1, le=52)] = 4) -> dict:
     """Per circoscrizione: quanti temi nel periodo e quali sono nuovi questa settimana.
 
-    Nuovo = con documenti nella settimana corrente e nessuno nelle SETTIMANE_NOVITA precedenti.
+    Nuovo: vedi ``novita``.
     """
     dal = _dal(settimane)
     corrente = _dal(1)
+    aree = novita(con, dal, corrente)
+    return {"dal": dal.isoformat(), "settimana_corrente": corrente.isoformat(), "aree": aree}
+
+
+def novita(con, dal: date, corrente: date) -> dict[str, dict]:
+    """Per circoscrizione: temi con documenti da ``dal`` e temi nuovi nella settimana ``corrente``.
+
+    Nuovo = documenti nella settimana ``corrente`` e nessuno nelle SETTIMANE_NOVITA precedenti.
+    """
     prima = corrente - timedelta(weeks=SETTIMANE_NOVITA)
+    fine = corrente + timedelta(weeks=1)
     righe = con.execute(
         f"""
         SELECT a.codice, t.tema,
-               sum(t.volume) FILTER (t.settimana >= ?) AS periodo,
-               sum(t.volume) FILTER (t.settimana >= ?) AS recente,
+               sum(t.volume) FILTER (t.settimana >= ? AND t.settimana < ?) AS periodo,
+               sum(t.volume) FILTER (t.settimana = ?) AS recente,
                sum(t.volume) FILTER (t.settimana >= ? AND t.settimana < ?) AS precedente
         FROM tema_aggregato t JOIN area a ON a.id = t.area_id
         WHERE a.tipo = 'circoscrizione' AND {NON_ESCLUSO}
         GROUP BY ALL
         """,
-        [dal, corrente, prima, corrente],
+        [dal, fine, corrente, prima, corrente],
     ).fetchall()
     aree: dict[str, dict] = {}
     for codice, tema, periodo, recente, precedente in righe:
@@ -122,7 +132,7 @@ def riepilogo_aree(con: Con, settimane: Annotated[int, Query(ge=1, le=52)] = 4) 
             voce["nuovi"].append(tema)
     for voce in aree.values():
         voce["nuovi"].sort()
-    return {"dal": dal.isoformat(), "settimana_corrente": corrente.isoformat(), "aree": aree}
+    return {k: v for k, v in aree.items() if v["temi"] or v["nuovi"]}
 
 
 def esclusi(con) -> list[str]:
