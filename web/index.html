@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitorino · Torino 2027</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+  <!-- app.js registra gli store prima che Alpine parta: l'ordine dei defer conta -->
+  <script defer src="/static/js/app.js"></script>
+  <script defer src="/static/vendor/alpine.min.js"></script>
+</head>
+<body x-data>
+  <div class="banner-prova" x-cloak x-show="$store.stato.datiDiProva" role="alert">
+    DATI DI PROVA — i numeri mostrati non sono reali
+  </div>
+  <div class="banner-errore" x-cloak x-show="$store.stato.errore" x-text="$store.stato.errore"></div>
+
+  <header class="barra">
+    <div class="marchio">Monitorino <span>Torino 2027</span></div>
+    <nav class="menu" aria-label="Moduli">
+      <template x-for="m in $store.selezione.moduli" :key="m.id">
+        <button type="button"
+                :class="{ attivo: $store.selezione.modulo === m.id }"
+                :aria-current="$store.selezione.modulo === m.id ? 'page' : null"
+                @click="$store.selezione.modulo = m.id"
+                x-text="m.nome"></button>
+      </template>
+    </nav>
+  </header>
+
+  <main class="zone">
+    <aside class="zona filtri" aria-label="Filtri">
+      <h2>Filtri</h2>
+      <p class="vuoto">I filtri del modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriveranno nelle prossime fasi.</p>
+    </aside>
+
+    <section class="zona mappa" aria-label="Mappa">
+      <div class="segnaposto">
+        <p>Mappa delle circoscrizioni</p>
+        <p class="vuoto">Disponibile dalla Fase 1</p>
+      </div>
+    </section>
+
+    <aside class="zona dettagli" aria-label="Dettagli">
+      <h2>Dettagli</h2>
+      <template x-if="$store.selezione.area">
+        <div>
+          <p class="area-nome" x-text="$store.selezione.area.nome"></p>
+          <button type="button" class="link" @click="$store.selezione.azzera()">Deseleziona</button>
+        </div>
+      </template>
+      <p class="vuoto" x-show="!$store.selezione.area">Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.</p>
+    </aside>
+  </main>
+</body>
+</html>
