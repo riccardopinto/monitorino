@@ -77,3 +77,17 @@ def test_stampa_e_archivio(con, tmp_path):
                             autore="Staff", pdf=pdf, cartella=tmp_path)  # fmt: skip
     assert (tmp_path / esito["file"]).read_bytes()[:4] == b"%PDF"
     assert con.execute("SELECT titolo, pagine FROM report").fetchone() == ("Scheda prova", 2)
+
+
+def test_classi_stesso_segno_e_conteggi():
+    # variazioni tutte positive: solo il ramo blu, con classi tra minimo e massimo
+    limiti, colori = mappe.classi([21.5, 24.0, 28.1], True)
+    assert colori == mappe.DIVERGENTE[4:] and limiti == pytest.approx([23.7, 25.9])
+    assert mappe.colore_di(limiti, colori, 21.5) != mappe.colore_di(limiti, colori, 28.1)
+    limiti, colori = mappe.classi([-5.0, -1.0], True)
+    assert colori == mappe.DIVERGENTE[:3]
+    assert mappe.colore_di(limiti, colori, -5.0) == mappe.DIVERGENTE[0]  # più negativo, più scuro
+    # conteggi piccoli: una classe per valore
+    limiti, colori = mappe.classi([1, 2, 3], False)
+    assert limiti == [2.0, 3.0] and len(colori) == 3
+    assert mappe.valori_interi([1.0, 3.0]) == [1, 2, 3] and mappe.valori_interi([0, 40]) is None

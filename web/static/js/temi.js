@@ -175,7 +175,7 @@
               backgroundColor: COLORI_SERIE[i],
               borderWidth: 2,
               pointRadius: 2,
-              tension: 0.2,
+              tension: 0,
             })),
           },
           options: {

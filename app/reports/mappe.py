@@ -23,6 +23,8 @@ SEQUENZIALE = ["#fde725", "#7ad151", "#22a884", "#2a788e", "#414487", "#440154"]
 DIVERGENTE = ["#b2182b", "#ef8a62", "#fddbc7", "#ededed", "#d1e5f0", "#67a9cf", "#2166ac"]
 PRIMO_SCURO = 3
 NESSUN_DATO = "#d9d9d6"
+# Colori su cui le etichette vanno in bianco.
+SCURI = {*SEQUENZIALE[PRIMO_SCURO:], DIVERGENTE[0], DIVERGENTE[-1]}
 BORDO = "#4a4f57"
 EVIDENZA = "#e66100"
 
@@ -42,17 +44,44 @@ def circoscrizioni(con: duckdb.DuckDBPyConnection) -> gpd.GeoDataFrame:
     ).to_crs("EPSG:32632")
 
 
+def valori_interi(numeri: list[float]) -> list[int] | None:
+    """Valori interi distinti se sono conteggi con pochi valori: una classe per valore."""
+    if not numeri or any(float(v) != int(v) for v in numeri):
+        return None
+    lo, hi = int(min(numeri)), int(max(numeri))
+    return list(range(lo, hi + 1)) if hi - lo < len(SEQUENZIALE) else None
+
+
 def classi(valori: list[float], divergente: bool) -> tuple[list[float], list[str]]:
-    """Limiti e colori, come Scala.classi in scale.js."""
+    """Limiti e colori, come Scala.classi in scale.js.
+
+    - Divergente con valori di segno misto: scala simmetrica intorno allo zero.
+    - Divergente con valori tutti dello stesso segno: solo il ramo di quel segno, con classi
+      tra minimo e massimo (altrimenti finirebbero tutti nella stessa classe).
+    - Sequenziale: intervalli uguali; per conteggi con pochi valori, una classe per valore.
+    """
     numeri = [v for v in valori if v is not None]
     if not numeri:
         return [], []
+    lo, hi = min(numeri), max(numeri)
     if divergente:
+        if lo >= 0 < hi or hi <= 0 > lo:
+            ramo = DIVERGENTE[4:] if lo >= 0 else DIVERGENTE[:3]
+            passo = (hi - lo) / 3 or 1
+            return [lo + passo, lo + 2 * passo], ramo
         m = max(abs(v) for v in numeri) or 1
         passo = m / 3.5
         return [k * passo for k in (-2.5, -1.5, -0.5, 0.5, 1.5, 2.5)], DIVERGENTE
-    lo, hi = min(numeri), max(numeri)
     n = len(SEQUENZIALE)
+    interi = valori_interi(numeri)
+    if interi:
+        k = len(interi)
+        colori = (
+            [SEQUENZIALE[round(i * (n - 1) / (k - 1))] for i in range(k)]
+            if k > 1
+            else [SEQUENZIALE[2]]
+        )
+        return [float(v) for v in interi[1:]], colori
     passo = (hi - lo) / n or 1
     return [lo + passo * (i + 1) for i in range(n - 1)], SEQUENZIALE
 
@@ -75,9 +104,17 @@ def _etichette(ax, gdf: gpd.GeoDataFrame, colori_fondo: dict[str, str] | None = 
     for _, r in gdf.iterrows():
         p = r.geometry.representative_point()
         fondo = (colori_fondo or {}).get(r.codice)
-        scuro = fondo is not None and fondo in SEQUENZIALE[PRIMO_SCURO:]
+        scuro = fondo in SCURI
         ax.annotate(r.codice, (p.x, p.y), ha="center", va="center", fontsize=9, weight="bold",
                     color="white" if scuro else "#1d2330")  # fmt: skip
+
+
+def _etichetta_classe(formato: Callable[[float], str], da, a) -> str:
+    if da is None:
+        return f"meno di {formato(a)}"
+    if a is None:
+        return f"da {formato(da)}"
+    return f"{formato(da)} – {formato(a)}"
 
 
 def coropletica(
@@ -85,7 +122,7 @@ def coropletica(
     valori: dict[str, float | None],
     *,
     divergente: bool = False,
-    formato: Callable[[float], str] = lambda v: f"{v:.1f}",
+    formato: Callable[[float], str] = lambda v: f"{v:.1f}".replace(".", ","),
     titolo: str = "",
 ) -> str:
     """Circoscrizioni colorate per valore; restituisce un data URI PNG."""
@@ -102,11 +139,11 @@ def coropletica(
     if titolo:
         ax.set_title(titolo, fontsize=10, loc="left")
     voci = []
+    interi = None if divergente else valori_interi([v for v in valori.values() if v is not None])
     for i, c in enumerate(colori):
         da = limiti[i - 1] if i > 0 else None
         a = limiti[i] if i < len(limiti) else None
-        testo = (f"meno di {formato(a)}" if da is None else
-                 f"da {formato(da)}" if a is None else f"{formato(da)} – {formato(a)}")  # fmt: skip
+        testo = formato(interi[i]) if interi else _etichetta_classe(formato, da, a)
         voci.append(Patch(facecolor=c, edgecolor=BORDO, linewidth=0.4, label=testo))
     if NESSUN_DATO in fondo.values():
         voci.append(

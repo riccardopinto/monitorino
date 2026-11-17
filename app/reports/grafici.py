@@ -89,7 +89,7 @@ def linee(
         "labels": etichette,
         "datasets": [
             {"label": s["nome"], "data": s["valori"], "borderColor": s["colore"],
-             "backgroundColor": s["colore"], "borderWidth": 2, "pointRadius": 2, "tension": 0.2}
+             "backgroundColor": s["colore"], "borderWidth": 2, "pointRadius": 2, "tension": 0}
             for s in serie
         ],
     }  # fmt: skip

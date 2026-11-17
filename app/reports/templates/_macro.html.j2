@@ -14,5 +14,5 @@
 {%- endmacro %}
 
 {% macro valore(v, unita) -%}
-{% if v is none %}–{% elif unita == "%" %}{{ v | num }}%{% elif unita in ("euro", "persone") %}{{ v | num(0) }}{% if unita == "euro" %} €{% endif %}{% else %}{{ v | num }}{% endif %}
+{% if v is none %}–{% elif unita == "%" %}{{ v | num }}%{% elif unita == "euro" %}{{ v | num(0) }} €{% elif v | abs >= 100 %}{{ v | num(0) }}{% else %}{{ v | num }}{% endif %}
 {%- endmacro %}
