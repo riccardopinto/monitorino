@@ -180,8 +180,6 @@ ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS origine VARCHAR;
 ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS seed INTEGER;
 ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS variante_pesi VARCHAR;
 ALTER TABLE simulazione ADD COLUMN IF NOT EXISTS candidato VARCHAR;
-ALTER TABLE calibrazione ADD COLUMN IF NOT EXISTS metrica VARCHAR;
-ALTER TABLE calibrazione ADD COLUMN IF NOT EXISTS data_sondaggio DATE;
 
 CREATE TABLE IF NOT EXISTS calibrazione (
     simulazione_id  INTEGER NOT NULL,       -- simulazione.id
@@ -189,6 +187,9 @@ CREATE TABLE IF NOT EXISTS calibrazione (
     valore_simulato DOUBLE,
     valore_reale    DOUBLE
 );
+-- Fase 5: metrica confrontata (es. favorevoli_pct) e data del sondaggio.
+ALTER TABLE calibrazione ADD COLUMN IF NOT EXISTS metrica VARCHAR;
+ALTER TABLE calibrazione ADD COLUMN IF NOT EXISTS data_sondaggio DATE;
 
 CREATE SEQUENCE IF NOT EXISTS seq_contenuto;
 CREATE TABLE IF NOT EXISTS contenuto (
