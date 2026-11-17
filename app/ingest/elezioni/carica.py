@@ -11,7 +11,9 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
+from app.core.config import AreePolitiche, aree_politiche, scostamenti_noti
 from app.ingest._comune import registra_caricamento, scarica
+from app.ingest.elezioni import eligendo
 from app.ingest.elezioni.consultazioni import BASE, Consultazione, File
 from app.ingest.elezioni.riepilogo import Riepilogo, leggi_riepilogo
 
@@ -114,8 +116,13 @@ def scrivi(
     c: Consultazione,
     affluenza: pd.DataFrame,
     risultati: pd.DataFrame,
+    alias: pd.DataFrame | None = None,
+    totali_ufficiali: list[tuple[str, str, int]] | None = None,
 ) -> int:
-    """Sostituisce i dati della consultazione. Restituisce l'id dell'elezione."""
+    """Sostituisce i dati della consultazione. Restituisce l'id dell'elezione.
+
+    Se ci sono totali ufficiali e le somme per sezione non coincidono, annulla tutto.
+    """
     con.execute("BEGIN")
     try:
         riga = con.execute(
@@ -169,6 +176,30 @@ def scrivi(
         )
         con.unregister("_map")
 
+        if alias is not None and not alias.empty:
+            con.register("_alias", alias.assign(elezione_id=eid))
+            con.execute(
+                "INSERT INTO lista_alias (elezione_id, tipo, soggetto, forza_politica, "
+                "area_politica, coalizione) SELECT elezione_id, tipo, soggetto, forza_politica, "
+                "area_politica, coalizione FROM _alias"
+            )
+            con.unregister("_alias")
+
+        if totali_ufficiali:
+            con.executemany(
+                "INSERT INTO totale_ufficiale (elezione_id, voce, soggetto, valore, fonte) "
+                "VALUES (?, ?, ?, ?, ?)",
+                [(eid, voce, sogg, val, eligendo.FONTE) for voce, sogg, val in totali_ufficiali],
+            )
+            diverse = eligendo.non_previste(
+                eligendo.differenze(con, eid), scostamenti_noti().get(c.chiave, {})
+            )
+            if diverse:
+                raise ErroreIngest(
+                    f"{c.nome}: somme per sezione diverse dai totali ufficiali Eligendo:\n  "
+                    + "\n  ".join(diverse)
+                )
+
         registra_caricamento(con, f"elezioni:{c.chiave}", len(risultati))
         con.execute("COMMIT")
     except Exception:
@@ -177,7 +208,55 @@ def scrivi(
     return eid
 
 
-def carica(con: duckdb.DuckDBPyConnection, c: Consultazione, scaricatore=scarica) -> int:
+TIPI_CANDIDATO_CLASSIFICATI = ("candidato_sindaco", "candidato_presidente")
+
+
+def alias(c: Consultazione, risultati: pd.DataFrame, aree: AreePolitiche) -> pd.DataFrame:
+    """Classificazione di liste e candidati da config/aree_politiche.yaml.
+
+    Ogni lista e ogni candidato sindaco o presidente deve avere una voce: se ne manca
+    qualcuna l'ingest si ferma, così nessun soggetto resta senza area politica.
+    """
+    candidati, liste = aree.risolvi(c.chiave)
+    righe = []
+    mancanti = []
+    for nome in sorted(risultati.loc[risultati.tipo_soggetto == "lista", "soggetto"].unique()):
+        if nome not in liste:
+            mancanti.append(f"lista {nome!r}")
+            continue
+        cl = liste[nome]
+        righe.append(("lista", nome, cl.forza, cl.area, cl.coalizione))
+    sel = risultati.tipo_soggetto.isin(TIPI_CANDIDATO_CLASSIFICATI)
+    for nome in sorted(risultati.loc[sel, "soggetto"].unique()):
+        if nome not in candidati:
+            mancanti.append(f"candidato {nome!r}")
+            continue
+        righe.append(("candidato", nome, f"Coalizione {nome}", candidati[nome], nome))
+    if mancanti:
+        raise ErroreIngest(
+            f"{c.chiave}: soggetti senza classificazione in config/aree_politiche.yaml: "
+            + ", ".join(mancanti)
+        )
+    return pd.DataFrame(
+        righe, columns=["tipo", "soggetto", "forza_politica", "area_politica", "coalizione"]
+    )
+
+
+def carica(
+    con: duckdb.DuckDBPyConnection,
+    c: Consultazione,
+    scaricatore=scarica,
+    *,
+    aree: AreePolitiche | None = None,
+    totali_ufficiali: bool = True,
+) -> int:
+    """Scarica, legge, classifica e scrive una consultazione.
+
+    ``aree`` e ``totali_ufficiali`` servono ai test: di default si usano
+    config/aree_politiche.yaml e i totali di Eligendo.
+    """
     letti = leggi_consultazione(c, scaricatore)
     affluenza, risultati = tabelle(letti)
-    return scrivi(con, c, affluenza, risultati)
+    classificazione = alias(c, risultati, aree or aree_politiche())
+    ufficiali = eligendo.scarica_totali(c.chiave, scaricatore) if totali_ufficiali else None
+    return scrivi(con, c, affluenza, risultati, classificazione, ufficiali)

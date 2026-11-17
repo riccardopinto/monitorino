@@ -72,14 +72,15 @@ CREATE TABLE IF NOT EXISTS risultato (
     PRIMARY KEY (elezione_id, sezione, tipo_soggetto, gruppo, soggetto)
 );
 
--- Classificazione delle liste, da config/aree_politiche.yaml (correggibile a mano).
+-- Classificazione di liste e candidati, da config/aree_politiche.yaml (correggibile a mano).
 CREATE TABLE IF NOT EXISTS lista_alias (
     elezione_id     INTEGER NOT NULL,       -- elezione.id
-    lista           VARCHAR NOT NULL,       -- nome come nei file del Comune
+    tipo            VARCHAR NOT NULL CHECK (tipo IN ('lista', 'candidato')),
+    soggetto        VARCHAR NOT NULL,       -- nome come nei file del Comune
     forza_politica  VARCHAR NOT NULL,       -- nome normalizzato, confrontabile tra elezioni
     area_politica   VARCHAR NOT NULL,
     coalizione      VARCHAR,                -- candidato collegato, dove c'è
-    PRIMARY KEY (elezione_id, lista)
+    PRIMARY KEY (elezione_id, tipo, soggetto)
 );
 
 -- Totali cittadini ufficiali per il controllo delle somme per sezione.
@@ -265,6 +266,7 @@ def crea_schema(con: duckdb.DuckDBPyConnection) -> None:
     """Crea tabelle e sequenze mancanti. Si può rieseguire senza effetti."""
     _ricrea_se_vuota(con, "risultato", "gruppo")  # Fase 2
     _ricrea_se_vuota(con, "elezione", "nome")  # Fase 2
+    _ricrea_se_vuota(con, "lista_alias", "tipo")  # Fase 2
     con.execute(SCHEMA)
 
 

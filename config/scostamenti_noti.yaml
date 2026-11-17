@@ -1,0 +1,23 @@
+# Differenze note tra le somme per sezione del Comune (elezioni.comune.torino.it) e i totali
+# ufficiali del Ministero dell'Interno (Eligendo, dait.interno.gov.it/documenti/opendata).
+#
+# Verificate il 2026-11-17 e accettate su decisione dello staff: i dati per sezione esistono
+# solo nella versione del Comune e si usano così come sono. Le differenze probabilmente vengono
+# da correzioni fatte in sede di proclamazione, dopo la pubblicazione dei dati per sezione.
+#
+# Il controllo dell'ingest passa solo se le differenze sono ESATTAMENTE queste: qualunque
+# altra differenza ferma ancora il caricamento.
+#
+# Formato per iscritti, votanti, bianche: {ufficiale: n, sezioni: n}
+# Formato per lista e candidato (confronto per valori): {solo_ufficiali: [...], solo_sezioni: [...]}
+
+comunali_2021:
+  # Noi Cittadini 240/239, Partito Animalista 775/776, Italexit 2353/2354,
+  # Futura per i Beni Comuni 6975/6974 (Ministero/Comune). Somma delle differenze: zero.
+  lista:
+    solo_ufficiali: [240, 775, 2353, 6975]
+    solo_sezioni: [239, 776, 2354, 6974]
+
+camera_2022:
+  # Somma dei votanti dei due collegi uninominali di Torino: 212.275 + 197.075 = 409.350.
+  votanti: {ufficiale: 409350, sezioni: 409351}

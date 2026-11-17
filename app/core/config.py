@@ -164,6 +164,42 @@ class PrezziLLM(_Modello):
     modelli: dict[str, PrezzoModello]
 
 
+class ClassificazioneLista(_Modello):
+    forza: str
+    area: str
+    coalizione: str | None = None
+
+
+class ClassificazioneConsultazione(_Modello):
+    eredita: str | None = None
+    candidati: dict[str, str] = {}  # nome candidato -> area
+    liste: dict[str, ClassificazioneLista] = {}
+
+
+class AreePolitiche(_Modello):
+    aree: list[str]
+    consultazioni: dict[str, ClassificazioneConsultazione]
+
+    @model_validator(mode="after")
+    def _coerenza(self) -> AreePolitiche:
+        for chiave, c in self.consultazioni.items():
+            if c.eredita and c.eredita not in self.consultazioni:
+                raise ValueError(f"{chiave}: eredita da {c.eredita}, che non esiste")
+            aree = list(c.candidati.values()) + [lista.area for lista in c.liste.values()]
+            for area in aree:
+                if area not in self.aree:
+                    raise ValueError(f"{chiave}: area sconosciuta {area!r}")
+        return self
+
+    def risolvi(self, chiave: str) -> tuple[dict[str, str], dict[str, ClassificazioneLista]]:
+        """Candidati e liste di una consultazione, compresi quelli ereditati."""
+        c = self.consultazioni.get(chiave)
+        if c is None:
+            return {}, {}
+        candidati, liste = self.risolvi(c.eredita) if c.eredita else ({}, {})
+        return {**candidati, **c.candidati}, {**liste, **c.liste}
+
+
 def _leggi_yaml(nome: str) -> dict[str, Any]:
     percorso = DIR_CONFIG / nome
     with percorso.open(encoding="utf-8") as f:
@@ -188,6 +224,16 @@ def fonti() -> Fonti:
 @lru_cache
 def temi() -> Temi:
     return Temi.model_validate(_leggi_yaml("temi.yaml"))
+
+
+def aree_politiche() -> AreePolitiche:
+    # Senza cache: il file si corregge a mano e va riletto a ogni ingest.
+    return AreePolitiche.model_validate(_leggi_yaml("aree_politiche.yaml"))
+
+
+def scostamenti_noti() -> dict[str, dict[str, dict]]:
+    """Differenze accettate tra dati per sezione del Comune e totali del Ministero."""
+    return _leggi_yaml("scostamenti_noti.yaml")
 
 
 @lru_cache

@@ -14,8 +14,9 @@ def _locale(url: str, fonte: str) -> Path:
     return DATI / url.rsplit("/", 1)[-1]
 
 
+# La chiave comunali_2021 fa usare la classificazione reale di config/aree_politiche.yaml.
 PROVA = Consultazione(
-    "prova_2021",
+    "comunali_2021",
     "comunali",
     date(2021, 10, 3),
     1,
@@ -37,8 +38,8 @@ def con(tmp_path):
 
 
 def test_carica_e_idempotente(con):
-    eid = carica(con, PROVA, scaricatore=_locale)
-    assert carica(con, PROVA, scaricatore=_locale) == eid
+    eid = carica(con, PROVA, scaricatore=_locale, totali_ufficiali=False)
+    assert carica(con, PROVA, scaricatore=_locale, totali_ufficiali=False) == eid
     assert con.execute("SELECT count(*) FROM elezione").fetchone()[0] == 1
     assert con.execute("SELECT count(*) FROM affluenza").fetchone()[0] == 3
     sindaco = con.execute(
@@ -59,11 +60,13 @@ def test_carica_e_idempotente(con):
 
 
 def test_conflitto_di_circoscrizione(con):
-    carica(con, PROVA, scaricatore=_locale)
+    carica(con, PROVA, scaricatore=_locale, totali_ufficiali=False)
     con.execute("UPDATE sezione_area SET circoscrizione = '5' WHERE sezione = '1'")
-    altra = Consultazione("prova_bis", "europee", date(2021, 5, 1), 1, "Bis", "prova", PROVA.file)
+    altra = Consultazione(
+        "comunali_2021", "europee", date(2021, 5, 1), 1, "Bis", "prova", PROVA.file
+    )
     with pytest.raises(ErroreIngest):
-        carica(con, altra, scaricatore=_locale)
+        carica(con, altra, scaricatore=_locale, totali_ufficiali=False)
 
 
 def test_affluenza_obbligatoria():

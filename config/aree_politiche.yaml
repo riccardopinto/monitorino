@@ -1,0 +1,222 @@
+# Classificazione delle liste e dei candidati per area politica.
+#
+# PROPOSTA DA VERIFICARE: scritta il 2026-11-17 con questa regola, da correggere a mano.
+# - Comunali e regionali: ogni lista prende l'area della coalizione del candidato collegato
+#   (coalizioni dalle pagine di riepilogo del Comune su elezioni.comune.torino.it).
+# - Coalizioni minori: "civici e terzo polo" se guidate da una lista civica, "altro" se guidate
+#   da un partito fuori dai due poli e dal M5S.
+# - Politiche: coalizioni nazionali del 2022. Europee: collocazione nazionale del partito.
+#
+# I nomi delle liste sono quelli dei file del Comune (troncati a 30 caratteri), da non cambiare.
+# Se si modifica una classificazione, rieseguire: uv run python -m app.ingest.elezioni
+#
+# Formato:  "NOME LISTA": {forza: <nome normalizzato>, area: <area>, coalizione: <candidato>}
+# "forza" è il nome che rende confrontabili liste di elezioni diverse.
+
+aree: [centrosinistra, centrodestra, M5S, civici e terzo polo, altro]
+
+consultazioni:
+
+  comunali_2016:
+    candidati:
+      FASSINO Piero Franco Rodolfo: centrosinistra
+      APPENDINO Chiara: M5S
+      MORANO Alberto: centrodestra
+      NAPOLI Osvaldo: centrodestra
+      ROSSO Roberto: civici e terzo polo
+      AIRAUDO Giorgio: altro
+      NOCCETTI Gianluca: altro
+      RIZZO Marco: altro
+      RACCA Marco: altro
+      COLUCCI Vitantonio detto Vito: altro
+      LEVI Mario Cornelio: altro
+      BATTISTA Anna: civici e terzo polo
+      DEVOTI Pier Carlo Luigi: civici e terzo polo
+      USSEGLIO VIRETTA Roberto: altro
+      ARIOTTO Alessio: altro
+      VARALDO Lorenzo: altro
+      DEL PERO Guglielmo: civici e terzo polo
+    liste:
+      "PARTITO DEMOCRATICO - FASSINO": {forza: PD, area: centrosinistra, coalizione: Fassino}
+      "MODERATI PER FASSINO": {forza: Moderati, area: centrosinistra, coalizione: Fassino}
+      "LISTA CIVICA PER FASSINO": {forza: Civiche centrosinistra, area: centrosinistra, coalizione: Fassino}
+      "PROGETTO TORINO - SINISTRA PER": {forza: Sinistra di coalizione, area: centrosinistra, coalizione: Fassino}
+      "MOVIMENTO5STELLE.IT": {forza: M5S, area: M5S, coalizione: Appendino}
+      "LEGA NORD PIEMONT SALVINI": {forza: Lega, area: centrodestra, coalizione: Morano}
+      "MELONI - FRATELLI D'ITALIA": {forza: FdI, area: centrodestra, coalizione: Morano}
+      "MORANO SINDACO - LAVORIAMO INS": {forza: Civiche centrodestra, area: centrodestra, coalizione: Morano}
+      "FORZA ITALIA - BERLUSCONI": {forza: Forza Italia, area: centrodestra, coalizione: Napoli}
+      "SALVIAMO L'OFTALMICO INSIEME": {forza: Civiche centrodestra, area: centrodestra, coalizione: Napoli}
+      "UN SOGNO PER TORINO": {forza: Civiche centrodestra, area: centrodestra, coalizione: Napoli}
+      "ROBERTO ROSSO SINDACO": {forza: Civiche terzo polo, area: civici e terzo polo, coalizione: Rosso}
+      "UDC AREA POPOLARE": {forza: UDC, area: civici e terzo polo, coalizione: Rosso}
+      "UNIONE PENSIONATI": {forza: Civiche terzo polo, area: civici e terzo polo, coalizione: Rosso}
+      "ALLEANZA DEMOCRATICA": {forza: Civiche terzo polo, area: civici e terzo polo, coalizione: Rosso}
+      "MIR MODERATI IN RIVOLUZIONE": {forza: Civiche terzo polo, area: civici e terzo polo, coalizione: Rosso}
+      "TORINO IN COMUNE - LA SINISTRA": {forza: Sinistra radicale, area: altro, coalizione: Airaudo}
+      "AMBIENTE TORINO": {forza: Sinistra radicale, area: altro, coalizione: Airaudo}
+      "PENSIONATI E INVALIDI GIOVANI": {forza: Sinistra radicale, area: altro, coalizione: Airaudo}
+      "LEGA PADANA PIEMONT": {forza: Altre liste, area: altro, coalizione: Noccetti}
+      "AMICI 4 ZAMPE": {forza: Altre liste, area: altro, coalizione: Noccetti}
+      "FORZA TORO": {forza: Altre liste, area: altro, coalizione: Noccetti}
+      "DISOCCUPATI PRECARI ESODATI": {forza: Altre liste, area: altro, coalizione: Noccetti}
+      "AUTOMOBILISTA": {forza: Altre liste, area: altro, coalizione: Noccetti}
+      "PARTITO COMUNISTA": {forza: Partito Comunista, area: altro, coalizione: Rizzo}
+      "CASAPOUND ITALIA": {forza: Destra radicale, area: altro, coalizione: Racca}
+      "IL POPOLO DELLA FAMIGLIA": {forza: Popolo della Famiglia, area: altro, coalizione: Colucci}
+      "ITALIA DEI VALORI - LEVI SINDA": {forza: Altre liste, area: altro, coalizione: Levi}
+      "BASTA!": {forza: Civiche minori, area: civici e terzo polo, coalizione: Battista}
+      "LA PIAZZA - LISTA CIVICA": {forza: Civiche minori, area: civici e terzo polo, coalizione: Devoti}
+      "FN - FORZA NUOVA": {forza: Destra radicale, area: altro, coalizione: Usseglio Viretta}
+      "PARTITO COMUNISTA DEI LAVORATO": {forza: Sinistra radicale, area: altro, coalizione: Ariotto}
+      "ABROGAZIONE!": {forza: Sinistra radicale, area: altro, coalizione: Varaldo}
+      "SIAMO TORINO": {forza: Civiche minori, area: civici e terzo polo, coalizione: Del Pero}
+
+  comunali_2016_ballottaggio:
+    # Nel file del ballottaggio i nomi sono scritti "Nome COGNOME".
+    candidati:
+      Piero Franco Rodolfo FASSINO: centrosinistra
+      Chiara APPENDINO: M5S
+
+  circoscrizionali_2016:
+    eredita: comunali_2016
+    liste:
+      "TORINO in COMUNE - LA SINISTRA": {forza: Sinistra radicale, area: altro}
+      "PROGETTO TORINO": {forza: Sinistra di coalizione, area: centrosinistra}
+      "NOI CITTADINI PER LA CIRCOSCRI": {forza: Civiche minori, area: civici e terzo polo}
+      "PENSIONATI INVALIDI E GIOVANI": {forza: Sinistra radicale, area: altro}
+
+  comunali_2021:
+    candidati:
+      Stefano LO RUSSO: centrosinistra
+      Paolo DAMILANO: centrodestra
+      Valentina SGANGA: M5S
+      Angelo D'ORSI: altro
+      Ugo MATTEI: civici e terzo polo
+      Ivano Francesco VERRA: altro
+      Davide BETTI detto BALDUCCI: altro
+      Giuseppina DI CRISTINA: altro
+      Paolo ALONGE: altro
+      Roberto SALERNO: altro
+      Lorenzo Maria VARALDO: altro
+      Massimo CHIESI: altro
+      Emilio MAZZA: civici e terzo polo
+    liste:
+      "P.DEMOCRATICO-LO RUSSO SINDACO": {forza: PD, area: centrosinistra, coalizione: Lo Russo}
+      "LISTA CIVICA-LO RUSSO SINDACO": {forza: Civiche centrosinistra, area: centrosinistra, coalizione: Lo Russo}
+      "SINISTRA ECOLOGISTA": {forza: Sinistra di coalizione, area: centrosinistra, coalizione: Lo Russo}
+      "MODERATI": {forza: Moderati, area: centrosinistra, coalizione: Lo Russo}
+      "TORINO DOMANI": {forza: Civiche centrosinistra, area: centrosinistra, coalizione: Lo Russo}
+      "ARTICOLO UNO - PSI": {forza: Sinistra di coalizione, area: centrosinistra, coalizione: Lo Russo}
+      "DAMILANO SIN-TORINO BELLISSIMA": {forza: Civiche centrodestra, area: centrodestra, coalizione: Damilano}
+      "GIORGIA MELONI-FRAT. D'ITALIA": {forza: FdI, area: centrodestra, coalizione: Damilano}
+      "LEGA SALVINI PIEMONTE": {forza: Lega, area: centrodestra, coalizione: Damilano}
+      "F. ITALIA-BERLUSCONI DAMILANO": {forza: Forza Italia, area: centrodestra, coalizione: Damilano}
+      "PROGRESSO TORINO-DAMILANO SIND": {forza: Civiche centrodestra, area: centrodestra, coalizione: Damilano}
+      "IL POPOLO DELLA FAMIGLIA": {forza: Popolo della Famiglia, area: centrodestra, coalizione: Damilano}
+      "SI' LAVORO SI' TAV GIACHINO": {forza: Civiche centrodestra, area: centrodestra, coalizione: Damilano}
+      "MOVIMENTO V \"2050\"": {forza: M5S, area: M5S, coalizione: Sganga}
+      "EUROPA VERDE ECOLOGISTA": {forza: Verdi, area: M5S, coalizione: Sganga}
+      "SINISTRA IN COMUNE-A. D'ORSI": {forza: Sinistra radicale, area: altro, coalizione: D'Orsi}
+      "PCI-PARTITO COMUNISTA ITALIANO": {forza: Partito Comunista, area: altro, coalizione: D'Orsi}
+      "POTERE AL POPOLO": {forza: Sinistra radicale, area: altro, coalizione: D'Orsi}
+      "FUTURA BENI COMUNI-MATTEI SIND": {forza: Civiche minori, area: civici e terzo polo, coalizione: Mattei}
+      "ITALEXIT PARAGONE-VERRA SIND.": {forza: Italexit, area: altro, coalizione: Verra}
+      "NOI CITTADINI": {forza: Altre liste, area: altro, coalizione: Verra}
+      "PARTITO GAY LGBT+": {forza: Altre liste, area: altro, coalizione: Betti}
+      "P. ANIMAL. AMBIENT. ANTISPEC.": {forza: Altre liste, area: altro, coalizione: Betti}
+      "P. COMUNISTA CON MARCO RIZZO": {forza: Partito Comunista, area: altro, coalizione: Di Cristina}
+      "TORINO CITTA' FUTURA": {forza: Partito Comunista, area: altro, coalizione: Di Cristina}
+      "3V - VERITA' LIBERTA'": {forza: Altre liste, area: altro, coalizione: Alonge}
+      "MOV. AMBIENTALISTA TORINO": {forza: Altre liste, area: altro, coalizione: Salerno}
+      "DIVIETO DI LICENZIARE": {forza: Sinistra radicale, area: altro, coalizione: Varaldo}
+      "P. COMUNISTA DEI LAVORATORI": {forza: Sinistra radicale, area: altro, coalizione: Chiesi}
+      "TORINO CAP. EUROPA BASTA ISEE": {forza: Civiche minori, area: civici e terzo polo, coalizione: Mazza}
+
+  comunali_2021_ballottaggio:
+    eredita: comunali_2021
+
+  circoscrizionali_2021:
+    eredita: comunali_2021
+    liste:
+      "MOVIMENTO 5 STELLE 2050": {forza: M5S, area: M5S}
+      "LA PIAZZA - LISTA CIVICA": {forza: Civiche minori, area: civici e terzo polo}
+
+  camera_2022:
+    liste:
+      "PARTITO DEMOCRATICO - ITALIA D": {forza: PD, area: centrosinistra, coalizione: Centrosinistra}
+      "ALLEANZA VERDI E SINISTRA": {forza: AVS, area: centrosinistra, coalizione: Centrosinistra}
+      "+EUROPA": {forza: +Europa, area: centrosinistra, coalizione: Centrosinistra}
+      "IMPEGNO CIVICO LUIGI DI MAIO -": {forza: Impegno Civico, area: centrosinistra, coalizione: Centrosinistra}
+      "FRATELLI D'ITALIA CON GIORGIA": {forza: FdI, area: centrodestra, coalizione: Centrodestra}
+      "LEGA PER SALVINI PREMIER": {forza: Lega, area: centrodestra, coalizione: Centrodestra}
+      "FORZA ITALIA": {forza: Forza Italia, area: centrodestra, coalizione: Centrodestra}
+      "NOI MODERATI/LUPI - TOTI - BRU": {forza: Noi Moderati, area: centrodestra, coalizione: Centrodestra}
+      "MOVIMENTO 5 STELLE": {forza: M5S, area: M5S}
+      "AZIONE - ITALIA VIVA - CALENDA": {forza: Azione - Italia Viva, area: civici e terzo polo}
+      "ITALEXIT PER L'ITALIA": {forza: Italexit, area: altro}
+      "UNIONE POPOLARE CON DE MAGISTR": {forza: Sinistra radicale, area: altro}
+      "ITALIA SOVRANA E POPOLARE": {forza: Altre liste, area: altro}
+      "VITA": {forza: Altre liste, area: altro}
+
+  senato_2022:
+    eredita: camera_2022
+    liste:
+      "ALTERNATIVA PER L'ITALIA - NO": {forza: Altre liste, area: altro}
+      "MASTELLA NOI DI CENTRO EUROPEI": {forza: Altre liste, area: altro}
+
+  europee_2019:
+    liste:
+      "PART.DEMOCRATICO SIAMO EUROPEI": {forza: PD, area: centrosinistra}
+      "+ EUROPA - ITALIA IN COMUNE": {forza: +Europa, area: centrosinistra}
+      "EUROPA VERDE": {forza: Verdi, area: centrosinistra}
+      "LEGA SALVINI PREMIER": {forza: Lega, area: centrodestra}
+      "FORZA ITALIA BERLUSCONI": {forza: Forza Italia, area: centrodestra}
+      "FRATELLI ITALIA GIORGIA MELONI": {forza: FdI, area: centrodestra}
+      "MOVIMENTO 5 STELLE": {forza: M5S, area: M5S}
+      "LA SINISTRA": {forza: Sinistra radicale, area: altro}
+      "PARTITO COMUNISTA": {forza: Partito Comunista, area: altro}
+      "PARTITO ANIMALISTA": {forza: Altre liste, area: altro}
+      "IL POPOLO DELLA FAMIGLIA": {forza: Popolo della Famiglia, area: altro}
+      "CASA POUND ITALIA DESTRE UNITE": {forza: Destra radicale, area: altro}
+      "PARTITO PIRATA": {forza: Altre liste, area: altro}
+      "POPOLARI PER L'ITALIA": {forza: Altre liste, area: altro}
+      "AUTONOMIE PER L'EUROPA": {forza: Altre liste, area: altro}
+      "FORZA NUOVA": {forza: Destra radicale, area: altro}
+
+  europee_2024:
+    liste:
+      "PARTITO DEMOCRATICO": {forza: PD, area: centrosinistra}
+      "ALLEANZA VERDI E SINISTRA": {forza: AVS, area: centrosinistra}
+      "FRATELLI D'ITALIA": {forza: FdI, area: centrodestra}
+      "FORZA ITALIA - NOI MODERATI -": {forza: Forza Italia, area: centrodestra}
+      "LEGA SALVINI PREMIER": {forza: Lega, area: centrodestra}
+      "MOVIMENTO 5 STELLE": {forza: M5S, area: M5S}
+      "STATI UNITI D'EUROPA": {forza: Stati Uniti d'Europa, area: civici e terzo polo}
+      "AZIONE - SIAMO EUROPEI": {forza: Azione - Italia Viva, area: civici e terzo polo}
+      "PACE TERRA DIGNITA'": {forza: Altre liste, area: altro}
+      "LIBERTA'": {forza: Altre liste, area: altro}
+      "ALTERNATIVA POPOLARE": {forza: Altre liste, area: altro}
+      "RASSEMBLEMENT VALDÔTAIN": {forza: Altre liste, area: altro}
+
+  regionali_2024:
+    candidati:
+      GIOVANNA PENTENERO: centrosinistra
+      ALBERTO CIRIO: centrodestra
+      SARAH DISABATO: M5S
+      FRANCESCA FREDIANI: altro
+      ALBERTO COSTANZO: altro
+    liste:
+      "PARTITO DEMOCRATICO": {forza: PD, area: centrosinistra, coalizione: Pentenero}
+      "ALLEANZA VERDI E SINISTRA": {forza: AVS, area: centrosinistra, coalizione: Pentenero}
+      "STATI UNITI D'EUROPA PER IL PI": {forza: Stati Uniti d'Europa, area: centrosinistra, coalizione: Pentenero}
+      "LISTA CIVICA PENTENERO PRESIDE": {forza: Civiche centrosinistra, area: centrosinistra, coalizione: Pentenero}
+      "LISTA CIVICA PIEMONTE AMBIENTA": {forza: Civiche centrosinistra, area: centrosinistra, coalizione: Pentenero}
+      "FRATELLI D'ITALIA": {forza: FdI, area: centrodestra, coalizione: Cirio}
+      "LISTA CIVICA CIRIO PRESIDENTE": {forza: Civiche centrodestra, area: centrodestra, coalizione: Cirio}
+      "FORZA ITALIA PPE - UDC - PLI": {forza: Forza Italia, area: centrodestra, coalizione: Cirio}
+      "LEGA SALVINI PIEMONTE": {forza: Lega, area: centrodestra, coalizione: Cirio}
+      "NOI MODERATI": {forza: Noi Moderati, area: centrodestra, coalizione: Cirio}
+      "MOVIMENTO 5 STELLE": {forza: M5S, area: M5S, coalizione: Disabato}
+      "PIEMONTE POPOLARE": {forza: Altre liste, area: altro, coalizione: Frediani}
+      "LIBERTA' PIEMONTE": {forza: Altre liste, area: altro, coalizione: Costanzo}
