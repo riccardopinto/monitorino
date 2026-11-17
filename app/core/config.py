@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
@@ -32,6 +32,8 @@ class Impostazioni(BaseSettings):
     llm_max_retries: int = Field(default=4, ge=0)
 
     db_path: Path = Path("data/campagna.duckdb")
+    # "osm": tile OpenStreetMap (richieste a un server esterno); "nessuna": solo i poligoni.
+    mappa_sfondo: Literal["osm", "nessuna"] = "osm"
 
     reddit_client_id: SecretStr | None = None
     reddit_client_secret: SecretStr | None = None

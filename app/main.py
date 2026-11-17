@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import stato
+from app.api import aree, stato
 from app.core import db
 from app.core.config import RADICE, impostazioni
 
@@ -17,19 +17,30 @@ VERSIONE = "0.1.0"
 DIR_WEB = RADICE / "web"
 
 
-def crea_app(percorso_db: Path | None = None) -> FastAPI:
-    """Costruisce l'app. ``percorso_db`` serve ai test; di default si usa DB_PATH da .env."""
+def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -> FastAPI:
+    """Costruisce l'app.
+
+    I parametri servono ai test: di default si usano DB_PATH e MAPPA_SFONDO da .env.
+    """
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        con = db.connetti(percorso_db or impostazioni().db_path)
+        if percorso_db is None:
+            imp = impostazioni()
+            percorso, sfondo = imp.db_path, mappa_sfondo or imp.mappa_sfondo
+        else:
+            percorso, sfondo = percorso_db, mappa_sfondo or "nessuna"
+        con = db.connetti(percorso)
         db.crea_schema(con)
         app.state.db = con
+        app.state.mappa_sfondo = sfondo
+        app.state.cache_aree = {}
         yield
         con.close()
 
     app = FastAPI(title="Monitorino", version=VERSIONE, lifespan=lifespan)
     app.include_router(stato.router)
+    app.include_router(aree.router)
     app.mount("/static", StaticFiles(directory=DIR_WEB / "static"), name="static")
 
     @app.get("/", include_in_schema=False)

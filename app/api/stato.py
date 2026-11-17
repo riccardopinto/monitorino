@@ -16,6 +16,7 @@ class Stato(BaseModel):
     versione: str
     schema_completo: bool
     dati_di_prova: bool
+    mappa_sfondo: str
 
 
 @router.get("/stato")
@@ -26,4 +27,5 @@ def leggi_stato(
         versione=request.app.version,
         schema_completo=db.schema_completo(con),
         dati_di_prova=db.dati_di_prova(con),
+        mappa_sfondo=request.app.state.mappa_sfondo,
     )
