@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<title>{{ titolo }}</title>
+<style>
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+         color: #1d2330; font-size: 10.5pt; line-height: 1.4; background: #fff; }
+  .pagina { width: 182mm; margin: 0 auto; }
+  .copertina { height: 255mm; display: flex; flex-direction: column; justify-content: center;
+               page-break-after: always; border-left: 6px solid #1f5fa8; padding-left: 12mm; }
+  .copertina .marchio { font-size: 11pt; color: #5d6675; letter-spacing: 0.05em; text-transform: uppercase; }
+  .copertina h1 { font-size: 26pt; line-height: 1.15; margin: 8mm 0 4mm; }
+  .copertina .sottotitolo { font-size: 13pt; color: #3a4150; margin: 0 0 14mm; }
+  .copertina dl { display: grid; grid-template-columns: 32mm 1fr; gap: 2mm 4mm; margin: 0; font-size: 10.5pt; }
+  .copertina dt { color: #5d6675; }
+  .copertina dd { margin: 0; }
+  .etichetta-prova, .dicitura { display: inline-block; margin-top: 10mm; padding: 2mm 4mm; font-weight: 700;
+               border: 1.5px solid #b45309; color: #b45309; background: #fef3c7; border-radius: 2mm; }
+  h2 { font-size: 15pt; margin: 0 0 3mm; padding-bottom: 1.5mm; border-bottom: 1.5px solid #1f5fa8;
+       page-break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 6mm 0 2mm; page-break-after: avoid; }
+  section { margin-bottom: 8mm; }
+  section.nuova-pagina { page-break-before: always; }
+  .blocco { page-break-inside: avoid; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 2mm 0 3mm; }
+  th, td { padding: 1.2mm 2mm; border-bottom: 0.5px solid #c9ced6; text-align: left; vertical-align: top; }
+  th { font-weight: 600; background: #f1f3f6; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tr { page-break-inside: avoid; }
+  .nota { font-size: 8.5pt; color: #5d6675; margin: 1mm 0 3mm; }
+  .avviso { font-size: 9pt; color: #7c3a06; background: #fef3c7; border-left: 3px solid #b45309;
+            padding: 2mm 3mm; margin: 2mm 0 4mm; page-break-inside: avoid; }
+  .mappa { display: block; max-width: 100%; max-height: 120mm; margin: 2mm 0; }
+  .mappa.piccola { max-height: 70mm; float: right; margin: 0 0 3mm 4mm; }
+  .grafico { margin: 2mm 0 4mm; page-break-inside: avoid; }
+  .kpi { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; margin: 3mm 0; }
+  .kpi div { background: #f1f3f6; border-radius: 2mm; padding: 3mm; }
+  .kpi b { display: block; font-size: 17pt; }
+  .kpi span { font-size: 8.5pt; color: #5d6675; }
+  .citazione { font-style: italic; }
+  .vuoto { color: #5d6675; font-style: italic; }
+  .testo-lungo { white-space: pre-wrap; }
+  a { color: #1f5fa8; text-decoration: none; }
+  .fonti td:first-child { width: 38%; }
+  .chiaro { color: #fff; }
+</style>
+</head>
+<body>
+<div class="pagina">
+  <div class="copertina">
+    <div class="marchio">Monitorino · Torino 2027 · {{ etichetta_tipo }}</div>
+    <h1>{{ titolo }}</h1>
+    {% if sottotitolo %}<p class="sottotitolo">{{ sottotitolo }}</p>{% endif %}
+    <dl>
+      <dt>Data</dt><dd>{{ generato_il | data_it }}</dd>
+      <dt>Autore</dt><dd>{{ autore or "non indicato" }}</dd>
+      <dt>Versione</dt><dd>Monitorino {{ versione }}</dd>
+      <dt>Uso</dt><dd>documento interno dello staff di campagna</dd>
+    </dl>
+    {% if dati_di_prova %}<div class="etichetta-prova">DATI DI PROVA — i numeri non sono reali</div>{% endif %}
+    {% if dicitura %}<div class="dicitura">{{ dicitura }}</div>{% endif %}
+  </div>
+
+  {% block contenuto %}{% endblock %}
+
+  <section class="blocco">
+    <h2>Fonti e date dei dati</h2>
+    {% if fonti %}
+    <table class="fonti">
+      <thead><tr><th>Dato</th><th>Fonte</th><th>Caricato il</th></tr></thead>
+      <tbody>
+      {% for f in fonti %}
+        <tr><td>{{ f.dato }}{% if f.dettaglio %}<br><span class="nota">{{ f.dettaglio }}</span>{% endif %}</td>
+            <td>{{ f.fonte }}</td><td>{{ f.aggiornato | data_it }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="vuoto">Nessuna fonte esterna: il report usa solo dati inseriti dallo staff.</p>
+    {% endif %}
+    {% block fonti_extra %}{% endblock %}
+    <p class="nota">URL, licenze e formati delle fonti sono documentati in docs/fonti_dati.md.
+      Generato il {{ generato_il | data_it }}{% if ora %} alle {{ ora }}{% endif %}.</p>
+  </section>
+</div>
+
+<script>{{ chart_js }}</script>
+<script>
+  (function () {
+    var GRAFICI = {{ grafici | json }};
+    function fine() { requestAnimationFrame(function () { window.__renderFatto = true; }); }
+    if (!GRAFICI.length || typeof Chart === "undefined") { fine(); return; }
+    Chart.defaults.font.family = '"Segoe UI", system-ui, sans-serif';
+    Chart.defaults.animation = false;
+    Chart.defaults.responsive = false;
+    Chart.defaults.devicePixelRatio = 2;
+    GRAFICI.forEach(function (g) {
+      var tela = document.getElementById(g.id);
+      if (!tela) return;
+      var leg = g.config.options && g.config.options.plugins && g.config.options.plugins.legend;
+      if (leg && leg.labels && leg.labels.filter === "senzaDoppioni") {
+        leg.labels.filter = function (item) { return item.text !== "Torino "; };
+      }
+      new Chart(tela, g.config);
+    });
+    fine();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{% macro grafico(g) -%}
+<div class="grafico"><canvas id="{{ g.id }}" width="{{ g.larghezza }}" height="{{ g.altezza }}"
+  style="width: {{ g.larghezza }}px; height: {{ g.altezza }}px" role="img"></canvas></div>
+{%- endmacro %}
+
+{% macro inferenza() -%}
+<p class="avviso">I dati descrivono i residenti e le sezioni di un'area, non chi ha votato:
+  una correlazione tra un'area e un risultato non dice come hanno votato le singole persone
+  (inferenza ecologica).</p>
+{%- endmacro %}

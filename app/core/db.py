@@ -235,6 +235,21 @@ CREATE TABLE IF NOT EXISTS uso_llm (
 );
 
 -- Registro dei caricamenti: di_prova = true per i dati di data/fixtures/.
+-- Fase 7: archivio dei report PDF generati (file in reports_out/).
+CREATE SEQUENCE IF NOT EXISTS seq_report;
+CREATE TABLE IF NOT EXISTS report (
+    id          INTEGER PRIMARY KEY DEFAULT nextval('seq_report'),
+    tipo        VARCHAR NOT NULL,
+    titolo      VARCHAR NOT NULL,
+    parametri   JSON,
+    autore      VARCHAR,
+    timestamp   TIMESTAMP NOT NULL DEFAULT current_timestamp,
+    file        VARCHAR,
+    pagine      INTEGER,
+    durata_s    DOUBLE,
+    browser     VARCHAR
+);
+
 CREATE TABLE IF NOT EXISTS caricamento (
     fonte       VARCHAR NOT NULL,
     timestamp   TIMESTAMP NOT NULL DEFAULT current_timestamp,
@@ -263,6 +278,7 @@ TABELLE = (
     "contenuto",
     "audit",
     "uso_llm",
+    "report",
     "caricamento",
 )
 
