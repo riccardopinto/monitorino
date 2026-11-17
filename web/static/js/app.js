@@ -11,7 +11,8 @@ document.addEventListener("alpine:init", () => {
       { id: "report", nome: "Report" },
     ],
     modulo: "mappa",
-    // { tipo: "circoscrizione" | "sezione", codice: "3", nome: "Circoscrizione 3" } oppure null
+    // { id, tipo: "circoscrizione" | "sezione", codice, nome, circoscrizione, approssimata }
+    // oppure null quando non c'è selezione (vista cittadina)
     area: null,
 
     nomeModulo() {
@@ -28,6 +29,7 @@ document.addEventListener("alpine:init", () => {
   Alpine.store("stato", {
     versione: null,
     datiDiProva: false,
+    mappaSfondo: null,
     errore: null,
 
     async carica() {
@@ -37,6 +39,7 @@ document.addEventListener("alpine:init", () => {
         const dati = await risposta.json();
         this.versione = dati.versione;
         this.datiDiProva = dati.dati_di_prova;
+        this.mappaSfondo = dati.mappa_sfondo;
         this.errore = dati.schema_completo ? null : "Schema del database incompleto";
       } catch (e) {
         this.errore = "Server non raggiungibile: " + e.message;

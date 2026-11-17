@@ -73,19 +73,32 @@ body {
 .dettagli { background: var(--superficie); border-left: 1px solid var(--bordo); }
 .mappa { padding: 0; position: relative; }
 
-.segnaposto {
-  position: absolute;
-  inset: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 2px dashed var(--bordo);
-  border-radius: 8px;
-  color: var(--testo-tenue);
+
+.mappa-leaflet { position: absolute; inset: 0; }
+.etichetta-circoscrizione {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--accento);
+  border-radius: 999px;
+  box-shadow: none;
+  color: var(--accento);
+  font-size: 0.85rem;
+  padding: 1px 7px;
 }
-.segnaposto p { margin: 4px; }
-.segnaposto p:first-child { font-size: 1.1rem; color: var(--testo); }
+.etichetta-circoscrizione::before { display: none; }
+.leaflet-popup-content { margin: 8px 12px; font-size: 0.85rem; }
+
+.interruttore { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; cursor: pointer; }
+.avviso {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--avviso);
+  background: var(--avviso-sfondo);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin: 0 0 16px;
+}
+.zona h2:not(:first-child) { margin-top: 20px; }
+.area-tipo { font-size: 0.8rem; color: var(--testo-tenue); margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
 
 .vuoto { color: var(--testo-tenue); font-size: 0.9rem; line-height: 1.4; }
 .area-nome { font-size: 1.1rem; font-weight: 600; }

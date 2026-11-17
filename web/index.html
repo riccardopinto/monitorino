@@ -4,16 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monitorino · Torino 2027</title>
+  <link rel="stylesheet" href="/static/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="/static/css/app.css">
-  <!-- app.js registra gli store prima che Alpine parta: l'ordine dei defer conta -->
+  <!-- I defer si eseguono in ordine: Leaflet, poi gli store, poi Alpine che li avvia -->
+  <script defer src="/static/vendor/leaflet/leaflet.js"></script>
   <script defer src="/static/js/app.js"></script>
+  <script defer src="/static/js/mappa.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body x-data>
   <div class="banner-prova" x-cloak x-show="$store.stato.datiDiProva" role="alert">
     DATI DI PROVA — i numeri mostrati non sono reali
   </div>
-  <div class="banner-errore" x-cloak x-show="$store.stato.errore" x-text="$store.stato.errore"></div>
+  <div class="banner-errore" x-cloak x-show="$store.stato.errore || $store.mappa.errore"
+       x-text="$store.stato.errore || $store.mappa.errore"></div>
 
   <header class="barra">
     <div class="marchio">Monitorino <span>Torino 2027</span></div>
@@ -30,22 +34,38 @@
 
   <main class="zone">
     <aside class="zona filtri" aria-label="Filtri">
+      <h2>Livelli</h2>
+      <label class="interruttore">
+        <input type="checkbox" x-model="$store.mappa.sezioniVisibili" @change="$store.mappa.alternaSezioni()">
+        <span>Sezioni elettorali</span>
+        <span class="vuoto" x-show="$store.mappa.caricamento">caricamento…</span>
+      </label>
+      <p class="avviso" x-cloak x-show="$store.mappa.sezioniVisibili">
+        Confini delle sezioni approssimati: stimati dai numeri civici (2019) e dalla
+        corrispondenza civico–sezione del Comune (2017). Non sono confini ufficiali.
+      </p>
+
       <h2>Filtri</h2>
       <p class="vuoto">I filtri del modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriveranno nelle prossime fasi.</p>
     </aside>
 
     <section class="zona mappa" aria-label="Mappa">
-      <div class="segnaposto">
-        <p>Mappa delle circoscrizioni</p>
-        <p class="vuoto">Disponibile dalla Fase 1</p>
-      </div>
+      <div class="mappa-leaflet" x-data="mappaTorino"></div>
     </section>
 
     <aside class="zona dettagli" aria-label="Dettagli">
       <h2>Dettagli</h2>
       <template x-if="$store.selezione.area">
         <div>
-          <p class="area-nome" x-text="$store.selezione.area.nome"></p>
+          <p class="area-tipo" x-text="$store.selezione.area.tipo === 'sezione' ? 'Sezione elettorale' : 'Circoscrizione'"></p>
+          <p class="area-nome"
+             x-text="$store.selezione.area.tipo === 'sezione' ? $store.selezione.area.nome : 'Circoscrizione ' + $store.selezione.area.codice"></p>
+          <p x-show="$store.selezione.area.tipo === 'circoscrizione'" x-text="$store.selezione.area.nome"></p>
+          <p x-show="$store.selezione.area.tipo === 'sezione'">
+            Circoscrizione <span x-text="$store.selezione.area.circoscrizione"></span>:
+            <span x-text="$store.mappa.nomiCircoscrizioni[$store.selezione.area.circoscrizione]"></span>
+          </p>
+          <p class="avviso" x-show="$store.selezione.area.approssimata">Confini approssimati.</p>
           <button type="button" class="link" @click="$store.selezione.azzera()">Deseleziona</button>
         </div>
       </template>
