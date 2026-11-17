@@ -23,8 +23,8 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 |---|---|---|---|---|---|---|
 | T1 | Risultati elettorali per sezione | aggregati pubblici, nessun dato personale | — | da verificare | durata del progetto | non attivo (Fase 2) |
 | T2 | Demografia per area | aggregati statistici pubblici | — | da verificare | durata del progetto | attivo dalla Fase 3 |
-| T3 | Raccolta news locali | titolo, URL, data, sintesi; nessun testo integrale | persone citate negli articoli | da verificare | da definire | non attivo (Fase 4) |
-| T4 | Raccolta social pubblici | testo senza autore né identificativi, poi solo aggregati | autori dei contenuti pubblici | da verificare | testo ≤ 30 giorni, aggregati per la durata del progetto | non attivo (Fase 4) |
+| T3 | Raccolta news locali | titolo, URL, data, sommario del feed (max 300 caratteri); nessun testo integrale | persone citate negli articoli | da verificare | da definire | attivo dalla Fase 4 |
+| T4 | Raccolta social pubblici | testo senza autore né identificativi, poi solo aggregati | autori dei contenuti pubblici | da verificare | testo ≤ 30 giorni, aggregati per la durata del progetto | pronto, spento (servono credenziali) |
 | T5 | Simulazioni del laboratorio messaggi | proposte, persone sintetiche, risultati aggregati | nessuno (dati sintetici) | da verificare | da definire | non attivo (Fase 5) |
 | T6 | Bozze di contenuti | testi, fonti, autore della bozza | staff di campagna | da verificare | da definire | non attivo (Fase 6) |
 | T7 | Utenti, accessi e audit | nome utente, ruolo, azioni, orari | staff di campagna | da verificare | da definire | non attivo (Fase 8) |
@@ -84,3 +84,14 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 - I redditi per area sono stime da una ripartizione statistica e l'interfaccia lo dichiara.
 - I pesi dei segmenti (`segmento_peso`) descrivono quote di gruppi aggregati per circoscrizione. Non contengono dati personali e non vanno usati per selezionare destinatari di annunci politici (Regolamento UE 2024/900). Metodo in `docs/metodo_simulazione.md`.
 - Il grafico demografia/voto riporta sempre l'avvertenza sull'inferenza ecologica.
+
+### Fase 4 — Temi da news e social
+
+- **T3 attivo**: raccolta giornaliera di titoli, link e sommari dai feed RSS di 6 testate e dell'agenzia di stampa del Comune. Gli articoli possono citare persone (fatti di cronaca, politici). Non si salva il testo integrale, solo i sommari del feed (massimo 300 caratteri), usati per classificare. Durata di conservazione dei sommari da definire con il consulente; i dati aggregati restano per la durata del progetto.
+- **T4 pronto ma spento**: i connettori Reddit, YouTube e Bluesky si attivano solo con le credenziali dello staff.
+  - Minimizzazione alla fonte: si tengono solo testo e data, si tolgono menzioni, URL ed email. Non si salvano autore, ID o link (`documento.url` è NULL per i social).
+  - Il testo si cancella alla scadenza di 30 giorni (`app/temi/aggrega.py::pulisci`, eseguito ogni giorno dal pianificatore o dal comando `pulisci`).
+  - Test automatici verificano l'assenza di identificativi, sia sui connettori sia sul database reale.
+  - Un testo anonimizzato può comunque contenere riferimenti a persone: per questo si cancella e in interfaccia non compare mai. Per i social l'interfaccia mostra solo conteggi aggregati.
+- **Flusso di classificazione via chat**: il prompt esportato contiene titoli, sommari e, se i social sono attivi, i testi anonimizzati. Incollarlo in una chat significa inviare questi contenuti al fornitore della chat, come avviene con l'API. Usare un account di lavoro con le impostazioni di conservazione e addestramento verificate dal consulente, e non incollare prompt che contengano dati personali.
+- **Fornitori**: si aggiungono le piattaforme social (Reddit, Google/YouTube, Bluesky), quando attivate, e il fornitore della chat usato per la classificazione. Da riportare nella sezione "Fornitori".

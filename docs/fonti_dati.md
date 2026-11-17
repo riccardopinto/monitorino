@@ -279,6 +279,65 @@ Si calcolano in `app/analysis/demografia.py` come rapporti tra somme, così il v
 
 Circoscrizioni e città usano i dati del Comune 2025 dove esistono. Le sezioni elettorali usano sempre il censimento 2021, e il loro confronto cittadino usa la stessa fonte e lo stesso anno. Per le sezioni con meno di 100 residenti gli indicatori non si mostrano.
 
+### News locali e comunicati (feed RSS)
+
+| Fonte | Feed | Stato al 2026-11-17 |
+|---|---|---|
+| La Stampa Torino | https://www.lastampa.it/torino/rss | attivo (100 elementi) |
+| Corriere Torino | https://xml2.corriereobjects.it/rss/homepage_torino.xml | **spento**: il feed risponde ma è fermo al novembre 2022 |
+| la Repubblica Torino | https://torino.repubblica.it/rss/rss2.0.xml | attivo (100) |
+| TorinoToday | https://www.torinotoday.it/rss | attivo (25) |
+| Torino Oggi | https://www.torinoggi.it/rss.xml | attivo (20) |
+| Quotidiano Piemontese | https://www.quotidianopiemontese.it/feed/ | attivo (20) |
+| Lo Spiffero | https://www.lospiffero.com/rss.xml | attivo (30) |
+| Comunicati Città di Torino | https://www.torinoclick.it/feed/ (Torino Click, agenzia di stampa del Comune) | attivo (10) |
+| Consigli di circoscrizione | nessun feed trovato | spento |
+
+- Script: `app/temi/news.py` (comando `uv run python -m app.temi news`). L'XML originale va in `data/raw/news/<data>/`.
+- Cosa si salva: titolo, link, data, testata e il sommario fornito dal feed, senza HTML e tagliato a 300 caratteri. Il testo integrale degli articoli non si scarica.
+- Gli articoli con più di 30 giorni si scartano: un feed fermo si vede dagli esiti della raccolta.
+- I feed comprendono notizie della provincia. La classificazione marca `pertinente = false` quelle che non riguardano la città, e l'aggregazione le esclude.
+- Termini d'uso: i feed RSS sono pubblicati per la consultazione. Titoli e sommari si usano solo per l'analisi interna e si mostrano con il link all'articolo originale. Verificare con il consulente l'eventuale riuso esterno.
+
+### Social (connettori spenti)
+
+| Piattaforma | Accesso | Credenziali (.env) | Note |
+|---|---|---|---|
+| Reddit | Data API ufficiale, OAuth application-only | `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` (app "script" su reddit.com/prefs/apps) | senza credenziali risponde 403; verificare i termini della Data API per l'uso da parte di una campagna |
+| YouTube | YouTube Data API v3 | `YOUTUBE_API_KEY` (Google Cloud) | id dei canali in `config/fonti.yaml`; 1 unità di quota per chiamata |
+| Bluesky | API AT Protocol con sessione | `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD` | la ricerca pubblica senza account risponde 403 dal 2025 |
+
+Si attivano con `attiva: true` in `config/fonti.yaml` e le credenziali in `.env`; comando `uv run python -m app.temi social`.
+- Alla raccolta restano solo testo e data: autore, ID e link non escono dal connettore.
+- Dal testo si tolgono menzioni (`@nome`, `u/nome`), URL ed email.
+- In `documento` i social hanno `url` NULL e `impronta` = hash del testo, mai l'ID.
+- Il testo si cancella alla `scadenza` (30 giorni, comando `pulisci`). Restano tema, sentiment, area e la sintesi neutra della classificazione.
+
+### Dizionario dei luoghi
+
+`app/temi/luoghi.py` (comando `uv run python -m app.temi luoghi`) costruisce la tabella `luogo`, circa 4.900 voci.
+- **Vie** dai civici 2019: una via entra solo se almeno l'80% dei suoi civici sta in una circoscrizione. Si usano il nome completo e la forma breve tipo + ultima parola.
+- **Quartieri** dai nomi delle circoscrizioni. I nomi troppo comuni (Centro, Barca, Sassi, Aurora, Parella, Lucento) valgono solo con "quartiere", "borgo" o "zona" davanti.
+- **Mercati, impianti sportivi, biblioteche, scuole** dal geoportale del Comune (`mercati_geo.zip`, `impianti_sportivi_geo.zip`, `biblioteche_geo.zip`, `scuole_geo.zip`, colonna `CIRCOSCRIZ`).
+- Le forme che portano a più circoscrizioni si scartano.
+- Assegnazione di un documento: si cercano i luoghi in titolo, sintesi e testo, preferendo la corrispondenza più lunga. Il documento va alla circoscrizione se è l'unica citata, oppure se ha almeno il doppio delle citazioni della seconda; altrimenti resta a livello cittadino.
+- Al primo giro il 9% delle news ha ricevuto una circoscrizione dal dizionario. La classificazione può aggiungerne altre, solo dove il dizionario non ne ha trovata.
+
+### Classificazione per tema
+
+Le istruzioni sono comuni (`app/llm/prompt_temi.py`) e i campi richiesti sono:
+- tema dalla tassonomia di `config/temi.yaml`, più "altro";
+- `pertinente` (riguarda la città di Torino);
+- sentiment da -2 a +2;
+- circoscrizione, solo se chiara;
+- sintesi neutra di massimo 25 parole.
+
+La risposta è JSON con schema, validata con pydantic. I flussi sono due:
+- **chat**: `uv run python -m app.temi esporta` scrive `data/processed/temi_prompt_<data>_<n>.md`, 150 documenti per file; `importa FILE` salva il JSON della risposta. Gli stessi due passi si fanno dal riquadro "Classificazione" del modulo Temi;
+- **API**: `uv run python -m app.temi classifica` usa la Message Batches API con `MODELLO_CLASSIFICAZIONE`, 20 documenti per richiesta, istruzioni in cache, il 50% di sconto e il tetto di spesa. I batch in corso stanno in `data/processed/batch_temi.json` e si raccolgono all'esecuzione successiva.
+
+Una classificazione già salvata non si sovrascrive. L'aggregazione settimanale (`aggrega`) usa solo i documenti classificati e pertinenti.
+
 ## Flussi elettorali stimati
 
 `app/analysis/elezioni.py::flussi` stima la matrice di transizione tra le aree politiche di due elezioni, con il "non voto" come categoria aggiuntiva.
