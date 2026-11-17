@@ -1,3 +1,4 @@
 - Nella sezione temi metti su mappa un piccolo pallino colorato con il numero di temi più discussi per quella circoscrizione, così che sia evidente quando ce ne sono di nuovi (magari colorando anche diversamente il numero).
 - Crea un piccolo flag per escludere un certo tema dalla lista.
 - Rendi le gradazioni di colore in tutte le tab più chiare e contrastanti (no sfumatore dello stesso colore, ma magari schema colori come rosso-giallo-verde)
+- Crea un modo semplice per caricare il json creato dal prompt direttamente dalla dashboard.
