@@ -13,6 +13,7 @@ import duckdb
 # Niente chiavi esterne: gli script di ingest cancellano e riscrivono intere fonti, e in DuckDB
 # i vincoli FOREIGN KEY bloccherebbero quelle operazioni. Le relazioni sono indicate nei commenti.
 SCHEMA = """
+-- Geometrie sempre in WGS84 (EPSG:4326); i calcoli metrici si fanno in EPSG:32632.
 CREATE SEQUENCE IF NOT EXISTS seq_area;
 CREATE TABLE IF NOT EXISTS area (
     id          INTEGER PRIMARY KEY DEFAULT nextval('seq_area'),
@@ -23,6 +24,8 @@ CREATE TABLE IF NOT EXISTS area (
     geometria   GEOMETRY,
     id_padre    INTEGER                     -- area.id
 );
+-- Geometrie stimate (es. sezioni elettorali da Voronoi sui civici). Aggiunta in Fase 1.
+ALTER TABLE area ADD COLUMN IF NOT EXISTS approssimata BOOLEAN DEFAULT false;
 
 CREATE TABLE IF NOT EXISTS sezione_area (
     sezione         VARCHAR NOT NULL,
