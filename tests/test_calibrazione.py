@@ -33,7 +33,7 @@ def test_registra_e_indice(con):
     assert r == {"valore_simulato": 40.0, "valore_reale": 46.0, "scarto": -6.0}
     a = cal.affidabilita(con)
     assert a["n"] == 1 and a["scarto_medio"] == 6.0 and a["giudizio"] is None
-    assert "troppo pochi" in a["testo"] and "sottostimano" in a["testo"]
+    assert "troppo pochi" in a["testo"] and "sottostimano di 6,0 punti" in a["testo"]
     cal.registra(con, simulazione_id=1, fonte_sondaggio="Y", metrica="saldo", valore_reale=8.0)
     cal.registra(con, simulazione_id=1, fonte_sondaggio="Z", metrica="favorevoli_pct",
                  valore_reale=49.0, area="3")  # fmt: skip

@@ -15,6 +15,7 @@
   <script defer src="/static/js/storico.js"></script>
   <script defer src="/static/js/demografia.js"></script>
   <script defer src="/static/js/temi.js"></script>
+  <script defer src="/static/js/laboratorio.js"></script>
   <script defer src="/static/vendor/alpine.min.js"></script>
 </head>
 <body x-data>
@@ -37,7 +38,7 @@
     </nav>
   </header>
 
-  <main class="zone">
+  <main class="zone" :class="{ larga: $store.selezione.modulo === 'laboratorio' }">
     <!-- ============ FILTRI ============ -->
     <aside class="zona filtri" aria-label="Filtri">
       <h2>Livelli</h2>
@@ -232,7 +233,148 @@
         </div>
       </template>
 
-      <template x-if="!['storico', 'mappa', 'demografia', 'temi'].includes($store.selezione.modulo)">
+      <template x-if="$store.selezione.modulo === 'laboratorio'">
+        <div class="filtri-lab">
+          <h2>Nuova simulazione</h2>
+          <template x-if="$store.lab.opzioni">
+            <div>
+              <label class="campo">Proposta (versione A)
+                <textarea rows="4" x-model="$store.lab.form.proposta"
+                          placeholder="Es. un nuovo parco nell'area dell'ex scalo"></textarea>
+              </label>
+              <label class="interruttore">
+                <input type="checkbox" x-model="$store.lab.form.conB"><span>Confronta con una versione B</span>
+              </label>
+              <label class="campo" x-show="$store.lab.form.conB">Proposta (versione B)
+                <textarea rows="3" x-model="$store.lab.form.proposta_b"
+                          placeholder="Stessa idea, formulata diversamente"></textarea>
+              </label>
+              <label class="campo">Candidato che la presenta
+                <select x-model="$store.lab.form.candidato">
+                  <template x-for="c in $store.lab.opzioni.candidati" :key="c.chiave">
+                    <option :value="c.chiave" x-text="c.nome + (c.ruolo ? ' · ' + c.ruolo : '')"
+                            :selected="c.chiave === $store.lab.form.candidato"></option>
+                  </template>
+                </select>
+              </label>
+
+              <fieldset class="gruppo">
+                <legend>Aree</legend>
+                <label><input type="radio" value="scelte" x-model="$store.lab.form.modoAree"> circoscrizioni scelte</label>
+                <div class="griglia-scelte" x-show="$store.lab.form.modoAree === 'scelte'">
+                  <template x-for="c in $store.lab.opzioni.circoscrizioni" :key="c.codice">
+                    <label :title="c.nome"><input type="checkbox" :value="c.codice" x-model="$store.lab.form.aree"><span x-text="c.codice"></span></label>
+                  </template>
+                </div>
+                <label><input type="radio" value="mappa" x-model="$store.lab.form.modoAree"> area selezionata in mappa
+                  <span class="vuoto" x-show="$store.lab.form.modoAree === 'mappa'"
+                        x-text="$store.lab.areeScelte().length ? '(circ. ' + $store.lab.areeScelte()[0] + ')' : '(nessuna)'"></span></label>
+                <label><input type="radio" value="citta" x-model="$store.lab.form.modoAree"> tutta la città (8 circoscrizioni)</label>
+              </fieldset>
+
+              <fieldset class="gruppo">
+                <legend>Segmenti</legend>
+                <label><input type="radio" value="predefiniti" x-model="$store.lab.form.modoSegmenti">
+                  predefiniti (<span x-text="$store.lab.opzioni.segmenti_predefiniti.length"></span>)</label>
+                <label><input type="radio" value="elettorato" x-model="$store.lab.form.modoSegmenti">
+                  elettorato potenziale del candidato</label>
+                <p class="vuoto piccolo" x-show="$store.lab.form.modoSegmenti === 'elettorato'"
+                   x-text="$store.lab.candidato()?.elettorato_potenziale.length ? $store.lab.candidato().elettorato_potenziale.join(', ') : 'Non indicato in candidati.yaml: si usano i predefiniti.'"></p>
+                <label><input type="radio" value="liberi" x-model="$store.lab.form.modoSegmenti"> scelta libera (incroci)</label>
+                <div x-show="$store.lab.form.modoSegmenti === 'liberi'" class="scelta-libera">
+                  <p class="piccolo">Età</p>
+                  <template x-for="v in $store.lab.opzioni.fasce_eta" :key="v">
+                    <label><input type="checkbox" :value="v" x-model="$store.lab.form.fasce"> <span x-text="v"></span></label>
+                  </template>
+                  <p class="piccolo">Condizione</p>
+                  <template x-for="v in $store.lab.opzioni.condizioni" :key="v">
+                    <label><input type="checkbox" :value="v" x-model="$store.lab.form.condizioni"> <span x-text="v"></span></label>
+                  </template>
+                  <p class="piccolo">Area di voto</p>
+                  <template x-for="v in $store.lab.opzioni.aree_di_voto" :key="v">
+                    <label><input type="checkbox" :value="v" x-model="$store.lab.form.areeVoto"> <span x-text="v"></span></label>
+                  </template>
+                </div>
+              </fieldset>
+
+              <div class="riga-campi">
+                <label class="campo">Persone per segmento
+                  <input type="number" min="1" max="30" x-model.number="$store.lab.form.persone">
+                </label>
+                <label class="campo">Seed
+                  <span class="con-pulsante">
+                    <input type="number" min="0" x-model.number="$store.lab.form.seed">
+                    <button type="button" class="link" title="Nuovo seed casuale" aria-label="Nuovo seed casuale" @click="$store.lab.nuovoSeed()">↻</button>
+                  </span>
+                </label>
+              </div>
+              <label class="campo">Pesi delle aree di voto
+                <select x-model="$store.lab.form.variante">
+                  <template x-for="v in $store.lab.opzioni.varianti_pesi" :key="v">
+                    <option :value="v" x-text="v === 'comunali' ? 'comunali 2021' : 'media europee 2024 e politiche 2022'"
+                            :selected="v === $store.lab.form.variante"></option>
+                  </template>
+                </select>
+              </label>
+              <fieldset class="gruppo">
+                <legend>Esecuzione</legend>
+                <label><input type="radio" value="chat" x-model="$store.lab.form.origine"> in chat (prompt da copiare, costo zero)</label>
+                <label :class="{ disattivo: !$store.lab.opzioni.api_disponibile }">
+                  <input type="radio" value="api" x-model="$store.lab.form.origine" :disabled="!$store.lab.opzioni.api_disponibile">
+                  via API <span class="vuoto" x-show="!$store.lab.opzioni.api_disponibile">(chiave non configurata)</span></label>
+              </fieldset>
+              <p class="nota" x-text="$store.lab.riepilogoForm()"></p>
+              <button type="button" class="pulsante" :class="{ disattivo: !$store.lab.puoCreare() }"
+                      @click="$store.lab.crea()">Crea simulazione</button>
+            </div>
+          </template>
+
+          <template x-if="$store.lab.run && $store.lab.run.origine === 'chat' && $store.lab.run.stato !== 'completata'">
+            <div class="blocchi-chat">
+              <h2>Prompt per la chat</h2>
+              <p class="nota">
+                Per ogni blocco: copia il prompt, incollalo in una nuova chat e riporta qui il JSON
+                della risposta (incollato o come file). La simulazione si completa con l'ultimo blocco.
+              </p>
+              <ol class="elenco-blocchi">
+                <template x-for="b in $store.lab.run.blocchi" :key="b.n">
+                  <li :class="{ fatto: b.completato }">
+                    <span class="blocco-nome">
+                      <strong x-text="'Blocco ' + b.n"></strong>
+                      <span class="vuoto" x-text="'circ. ' + b.area + ', segmenti ' + b.indici.map((i) => i + 1).join(', ')"></span>
+                    </span>
+                    <span class="blocco-azioni">
+                      <span x-show="b.completato" class="spunta">✓ importato</span>
+                      <button type="button" class="link" @click="$store.lab.copiaPrompt(b.n)"
+                              x-text="$store.lab.copiato === b.n ? 'copiato' : 'copia'"></button>
+                      <a class="link" :href="$store.lab.urlPrompt(b.n)" download>scarica</a>
+                      <label class="link">file JSON
+                        <input type="file" accept=".json,.txt,.md,application/json,text/plain" hidden
+                               @change="$store.lab.caricaFile(b.n, $event)"></label>
+                    </span>
+                  </li>
+                </template>
+              </ol>
+              <label class="campo">Incolla la risposta del blocco
+                <select x-model.number="$store.lab.bloccoIncolla">
+                  <template x-for="b in $store.lab.run.blocchi" :key="b.n">
+                    <option :value="b.n" x-text="'Blocco ' + b.n + (b.completato ? ' (già importato)' : '')"
+                            :selected="b.n === $store.lab.bloccoIncolla"></option>
+                  </template>
+                </select>
+              </label>
+              <textarea rows="4" class="incolla" x-model="$store.lab.testoIncolla" placeholder="{&quot;segmenti&quot;: [...]}"></textarea>
+              <button type="button" class="pulsante" :class="{ disattivo: !$store.lab.testoIncolla.trim() || $store.lab.occupato }"
+                      @click="$store.lab.importa($store.lab.bloccoIncolla, $store.lab.testoIncolla)">Importa</button>
+              <p class="avviso" x-show="$store.lab.esitoImport" x-text="$store.lab.esitoImport"></p>
+            </div>
+          </template>
+          <p class="vuoto" x-show="$store.lab.occupato">elaborazione…</p>
+          <p class="errore" x-show="$store.lab.errore" x-text="$store.lab.errore"></p>
+        </div>
+      </template>
+
+      <template x-if="!['storico', 'mappa', 'demografia', 'temi', 'laboratorio'].includes($store.selezione.modulo)">
         <div>
           <h2>Filtri</h2>
           <p class="vuoto">Il modulo <strong x-text="$store.selezione.nomeModulo()"></strong> arriverà nelle prossime fasi.</p>
@@ -380,9 +522,258 @@
         </div>
       </template>
 
-      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia', 'temi'].includes($store.selezione.modulo)">
+      <p class="vuoto" x-show="!$store.selezione.area && !['storico', 'demografia', 'temi', 'laboratorio'].includes($store.selezione.modulo)">
         Nessuna area selezionata. Seleziona una circoscrizione sulla mappa.
       </p>
+
+      <template x-if="$store.selezione.modulo === 'laboratorio'">
+        <div class="dettaglio-lab">
+          <p class="dicitura" x-text="$store.lab.opzioni?.dicitura || 'Simulazione IA, non è un sondaggio'"></p>
+          <p class="affidabilita" x-show="$store.lab.affidabilita">
+            <strong>Affidabilità:</strong> <span x-text="$store.lab.affidabilita?.testo"></span>
+          </p>
+
+          <template x-if="!$store.lab.run">
+            <p class="vuoto">Crea una simulazione nella colonna di sinistra o aprine una dall'archivio qui sotto.</p>
+          </template>
+
+          <template x-if="$store.lab.run">
+            <div>
+              <h3 class="titoletto" x-text="'Simulazione ' + $store.lab.run.id + ' · ' + $store.lab.statoTesto()"></h3>
+              <p class="proposta"><span class="etichetta-ab" x-show="$store.lab.run.proposta_b">A</span><span x-text="$store.lab.run.proposta"></span></p>
+              <p class="proposta" x-show="$store.lab.run.proposta_b"><span class="etichetta-ab">B</span><span x-text="$store.lab.run.proposta_b"></span></p>
+              <p class="sottotitolo">
+                <span x-text="$store.lab.run.candidato_nome"></span> ·
+                circ. <span x-text="$store.lab.run.aree.join(', ')"></span> ·
+                <span x-text="$store.lab.run.segmenti.length"></span> segmenti ×
+                <span x-text="$store.lab.run.persone_per_segmento"></span> persone · pesi
+                <span x-text="$store.lab.run.variante_pesi"></span> · seed
+                <span x-text="$store.lab.run.seed"></span> ·
+                <span x-text="$store.lab.run.origine === 'chat' ? 'chat, costo 0 €' : $store.lab.run.modello + ', ' + $store.lab.num($store.lab.run.costo_eur, 2) + ' €'"></span>
+              </p>
+
+              <template x-if="$store.lab.conferma">
+                <div class="avviso">
+                  Costo stimato <strong x-text="$store.lab.num($store.lab.conferma.costo_eur, 2) + ' €'"></strong>, oltre la soglia di conferma.
+                  <button type="button" class="pulsante" @click="$store.lab.esegui(true)">Conferma e avvia</button>
+                </div>
+              </template>
+              <template x-if="$store.lab.run.origine === 'api' && $store.lab.run.stato !== 'completata' && !$store.lab.conferma">
+                <div>
+                  <p class="vuoto" x-show="$store.lab.run.stima"
+                     x-text="'Stima: ' + $store.lab.run.stima?.chiamate + ' chiamate' + ($store.lab.run.stima?.batch ? ' (batch, entro 24 ore)' : '') + ', circa ' + $store.lab.num($store.lab.run.stima?.costo_eur, 2) + ' €'"></p>
+                  <button type="button" class="pulsante" x-show="!$store.lab.run.batch" @click="$store.lab.esegui(false)">Avvia via API</button>
+                  <button type="button" class="pulsante" x-show="$store.lab.run.batch" @click="$store.lab.aggiornaBatch()">Controlla il batch</button>
+                </div>
+              </template>
+              <ul class="errori" x-show="$store.lab.run.errori.length">
+                <template x-for="e in $store.lab.run.errori" :key="e"><li x-text="e"></li></template>
+              </ul>
+
+              <template x-if="$store.lab.run.aggregati">
+                <div>
+                  <div class="schede-ab" x-show="$store.lab.run.proposta_b">
+                    <button type="button" :class="{ attivo: $store.lab.vista === 'a' }" @click="$store.lab.vista = 'a'; $store.lab.ridisegna()">Versione A</button>
+                    <button type="button" :class="{ attivo: $store.lab.vista === 'b' }" @click="$store.lab.vista = 'b'; $store.lab.ridisegna()">Versione B</button>
+                  </div>
+                  <div class="kpi">
+                    <div><span class="kpi-valore" x-text="$store.lab.segno($store.lab.aggregati().totale.saldo)"></span><span class="kpi-nome">saldo netto (punti)</span></div>
+                    <div><span class="kpi-valore" x-text="$store.lab.num($store.lab.aggregati().totale.favorevoli_pct, 0) + '%'"></span><span class="kpi-nome">favorevoli (4-5)</span></div>
+                    <div><span class="kpi-valore" x-text="$store.lab.num($store.lab.aggregati().totale.gradimento_medio, 2)"></span><span class="kpi-nome">gradimento medio (1-5)</span></div>
+                  </div>
+                  <p class="nota">
+                    Saldo netto = % di persone sintetiche che si avvicinano al candidato − % che se ne
+                    allontanano, pesate sulla composizione stimata dell'elettorato.
+                    Avvicina <span x-text="$store.lab.num($store.lab.aggregati().totale.avvicina_pct) + '%'"></span>,
+                    nessun effetto <span x-text="$store.lab.num($store.lab.aggregati().totale.nessuno_pct) + '%'"></span>,
+                    allontana <span x-text="$store.lab.num($store.lab.aggregati().totale.allontana_pct) + '%'"></span>.
+                  </p>
+
+                  <div class="legenda" x-show="$store.lab.legenda.length">
+                    <h3>Mappa: saldo netto per circoscrizione (punti)</h3>
+                    <div class="legenda-riga">
+                      <template x-for="(c, i) in $store.lab.legenda" :key="i">
+                        <div class="legenda-voce"><span class="campione" :style="'background:' + c.colore"></span><span x-text="c.testo"></span></div>
+                      </template>
+                      <div class="legenda-voce"><span class="campione nd"></span><span>fuori dalla simulazione</span></div>
+                    </div>
+                  </div>
+
+                  <template x-if="$store.lab.confronto()">
+                    <table class="tabella-ab">
+                      <thead><tr><th></th><th class="num">A</th><th class="num">B</th><th class="num">B − A</th></tr></thead>
+                      <tbody>
+                        <tr><td>Saldo netto</td>
+                          <td class="num" x-text="$store.lab.segno($store.lab.run.aggregati.a.totale.saldo)"></td>
+                          <td class="num" x-text="$store.lab.segno($store.lab.run.aggregati.b.totale.saldo)"></td>
+                          <td class="num" x-text="$store.lab.segno($store.lab.confronto().totale.saldo)"></td></tr>
+                        <tr><td>Favorevoli %</td>
+                          <td class="num" x-text="$store.lab.num($store.lab.run.aggregati.a.totale.favorevoli_pct)"></td>
+                          <td class="num" x-text="$store.lab.num($store.lab.run.aggregati.b.totale.favorevoli_pct)"></td>
+                          <td class="num" x-text="$store.lab.segno($store.lab.confronto().totale.favorevoli_pct)"></td></tr>
+                        <tr><td>Gradimento</td>
+                          <td class="num" x-text="$store.lab.num($store.lab.run.aggregati.a.totale.gradimento_medio, 2)"></td>
+                          <td class="num" x-text="$store.lab.num($store.lab.run.aggregati.b.totale.gradimento_medio, 2)"></td>
+                          <td class="num" x-text="$store.lab.segno($store.lab.confronto().totale.gradimento_medio, 2)"></td></tr>
+                      </tbody>
+                    </table>
+                  </template>
+
+                  <h3 class="titoletto">Saldo netto per area di voto</h3>
+                  <div class="contenitore-grafico"><canvas id="grafico-lab-voto" role="img"
+                       aria-label="Barre divergenti del saldo netto per area di voto"></canvas></div>
+
+                  <h3 class="titoletto">Saldo netto per segmento</h3>
+                  <label class="campo" x-show="$store.lab.run.aree.length > 1">Circoscrizione (anche con un clic sulla mappa)
+                    <select x-model="$store.lab.areaSegmenti" @change="$store.lab.ridisegna()">
+                      <template x-for="a in $store.lab.run.aree" :key="a">
+                        <option :value="a" x-text="a + ' · ' + $store.lab.nomeArea(a)" :selected="a === $store.lab.areaSegmenti"></option>
+                      </template>
+                    </select>
+                  </label>
+                  <div class="contenitore-grafico"><canvas id="grafico-lab-segmenti" role="img"
+                       aria-label="Barre divergenti del saldo netto per segmento"></canvas></div>
+                  <details class="tabella-dati">
+                    <summary>Tabella per segmento</summary>
+                    <table>
+                      <thead><tr><th>Segmento</th><th class="num">Peso</th><th class="num">Gradim.</th><th class="num">Saldo</th></tr></thead>
+                      <tbody>
+                        <template x-for="s in $store.lab.segmentiArea()" :key="s.indice">
+                          <tr>
+                            <td x-text="$store.lab.nomeSegmento(s)"></td>
+                            <td class="num" x-text="$store.lab.num(s.peso * 100) + '%'"></td>
+                            <td class="num" x-text="$store.lab.num(s.gradimento_medio, 2) + ' ± ' + $store.lab.num(s.gradimento_dev, 1)"></td>
+                            <td class="num" x-text="$store.lab.segno(s.saldo)"></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </details>
+                  <details class="tabella-dati" x-show="$store.lab.run.aree.length > 1">
+                    <summary>Tabella per circoscrizione</summary>
+                    <table>
+                      <thead><tr><th>Circ.</th><th class="num">Peso</th><th class="num">Gradim.</th><th class="num">Saldo</th></tr></thead>
+                      <tbody>
+                        <template x-for="a in $store.lab.aggregati().aree" :key="a.area">
+                          <tr>
+                            <td x-text="a.area + ' · ' + $store.lab.nomeArea(a.area)"></td>
+                            <td class="num" x-text="$store.lab.num(a.peso * 100) + '%'"></td>
+                            <td class="num" x-text="$store.lab.num(a.gradimento_medio, 2)"></td>
+                            <td class="num" x-text="$store.lab.segno(a.saldo)"></td>
+                          </tr>
+                        </template>
+                      </tbody>
+                    </table>
+                  </details>
+
+                  <h3 class="titoletto">Obiezioni ricorrenti</h3>
+                  <ol class="obiezioni">
+                    <template x-for="o in $store.lab.aggregati().obiezioni" :key="o.obiezione">
+                      <li>
+                        <span x-text="o.obiezione"></span>
+                        <span class="vuoto" x-text="' · ' + $store.lab.num(o.quota_pct, 0) + '% dei timori, ' + o.menzioni + ' menzioni'"></span>
+                        <span class="vuoto piccolo" x-show="o.varianti.length" x-text="' (anche: ' + o.varianti.join('; ') + ')'"></span>
+                      </li>
+                    </template>
+                  </ol>
+                  <p class="vuoto" x-show="!$store.lab.aggregati().obiezioni.length">Nessun timore espresso.</p>
+
+                  <h3 class="titoletto">Parole ricordate</h3>
+                  <p class="parole">
+                    <template x-for="p in $store.lab.aggregati().parole_ricordate" :key="p.parola">
+                      <span class="parola" x-text="p.parola + ' ' + p.volte"></span>
+                    </template>
+                  </p>
+
+                  <h3 class="titoletto" x-text="'Frasi rappresentative · circ. ' + $store.lab.areaSegmenti"></h3>
+                  <ul class="frasi">
+                    <template x-for="(f, i) in $store.lab.frasiArea()" :key="i">
+                      <li>
+                        <q x-text="f.testo"></q>
+                        <span class="vuoto piccolo" x-text="$store.lab.nomeSegmento($store.lab.run.segmenti[f.indice]) + ' · ' + f.tipo + ' · gradimento ' + f.gradimento"></span>
+                      </li>
+                    </template>
+                  </ul>
+                  <p class="nota">Frasi di persone sintetiche generate dal modello, non dichiarazioni di elettori reali.</p>
+
+                  <h3 class="titoletto">Sintesi</h3>
+                  <p class="sintesi" x-show="$store.lab.run.sintesi" x-text="$store.lab.run.sintesi"></p>
+                  <template x-if="!$store.lab.run.sintesi">
+                    <div>
+                      <button type="button" class="pulsante" x-show="$store.lab.opzioni?.api_disponibile" @click="$store.lab.sintesiApi()">Genera sintesi via API</button>
+                      <p class="nota">
+                        In chat: copia il prompt della sintesi (contiene solo i numeri aggregati), incollalo
+                        in una nuova chat e riporta qui il testo.
+                      </p>
+                      <button type="button" class="link" @click="$store.lab.copiaPromptSintesi()"
+                              x-text="$store.lab.copiato === 'sintesi' ? 'prompt copiato' : 'copia prompt della sintesi'"></button>
+                      ·
+                      <a class="link" :href="'/api/laboratorio/simulazioni/' + $store.lab.run.id + '/prompt-sintesi'" download>scarica</a>
+                      <textarea rows="4" class="incolla" x-model="$store.lab.testoSintesi" placeholder="Testo della sintesi"></textarea>
+                      <button type="button" class="pulsante secondario" :class="{ disattivo: !$store.lab.testoSintesi.trim() }"
+                              @click="$store.lab.salvaSintesi()">Salva sintesi</button>
+                    </div>
+                  </template>
+
+                  <h3 class="titoletto">Calibrazione con un sondaggio reale</h3>
+                  <div class="form-cal">
+                    <label class="campo">Fonte del sondaggio
+                      <input type="text" x-model="$store.lab.cal.fonte" placeholder="Istituto, committente, campione"></label>
+                    <div class="riga-campi">
+                      <label class="campo">Metrica
+                        <select x-model="$store.lab.cal.metrica">
+                          <template x-for="(nome, m) in $store.lab.opzioni?.metriche_calibrazione || {}" :key="m">
+                            <option :value="m" x-text="nome" :selected="m === $store.lab.cal.metrica"></option>
+                          </template>
+                        </select></label>
+                      <label class="campo">Valore reale
+                        <input type="number" step="0.1" x-model.number="$store.lab.cal.valore"></label>
+                    </div>
+                    <div class="riga-campi">
+                      <label class="campo">Data
+                        <input type="date" x-model="$store.lab.cal.data"></label>
+                      <label class="campo">Ambito
+                        <select x-model="$store.lab.cal.area">
+                          <option value="">tutte le aree del run</option>
+                          <template x-for="a in $store.lab.run.aree" :key="a">
+                            <option :value="a" x-text="'circoscrizione ' + a"></option>
+                          </template>
+                        </select></label>
+                    </div>
+                    <label class="campo" x-show="$store.lab.run.proposta_b">Versione
+                      <select x-model="$store.lab.cal.variante"><option value="a">A</option><option value="b">B</option></select></label>
+                    <button type="button" class="pulsante secondario"
+                            :class="{ disattivo: !$store.lab.cal.fonte.trim() || $store.lab.cal.valore === null || $store.lab.cal.valore === '' }"
+                            @click="$store.lab.calibra()">Registra confronto</button>
+                    <p class="vuoto" x-show="$store.lab.esitoCal" x-text="$store.lab.esitoCal"></p>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <details class="limiti" open>
+            <summary>Limiti di questa simulazione</summary>
+            <ul>
+              <template x-for="l in $store.lab.opzioni?.limiti || []" :key="l"><li x-text="l"></li></template>
+            </ul>
+          </details>
+
+          <h3 class="titoletto">Archivio</h3>
+          <ul class="archivio">
+            <template x-for="s in $store.lab.archivio" :key="s.id">
+              <li :class="{ scelto: $store.lab.run?.id === s.id }">
+                <button type="button" class="link" @click="$store.lab.apri(s.id)">
+                  <span x-text="'#' + s.id + ' ' + s.proposta"></span>
+                </button>
+                <span class="vuoto piccolo"
+                      x-text="s.timestamp.replace('T', ' ') + ' · ' + s.stato + ' · ' + s.origine + (s.totale ? ' · saldo ' + $store.lab.segno(s.totale.saldo) : '')"></span>
+              </li>
+            </template>
+          </ul>
+          <p class="vuoto" x-show="!$store.lab.archivio.length">Nessuna simulazione salvata.</p>
+        </div>
+      </template>
 
       <template x-if="$store.selezione.modulo === 'storico'">
         <div class="dettaglio-storico">

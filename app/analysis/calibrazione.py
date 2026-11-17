@@ -27,6 +27,10 @@ class ErroreCalibrazione(ValueError):
     pass
 
 
+def _it(v: float) -> str:
+    return f"{v:.1f}".replace(".", ",")
+
+
 def valore_simulato(
     con: duckdb.DuckDBPyConnection,
     simulazione_id: int,
@@ -117,7 +121,7 @@ def affidabilita(con: duckdb.DuckDBPyConnection) -> dict:
     distorsione = sum(scarti) / len(scarti)
     giudizio = next(g for soglia, g in SOGLIE_GIUDIZIO if mae <= soglia)
     testo = (
-        f"Scarto medio dai sondaggi reali: {mae:.1f} punti su {len(righe)} "
+        f"Scarto medio dai sondaggi reali: {_it(mae)} punti su {len(righe)} "
         f"confront{'o' if len(righe) == 1 else 'i'}"
     )
     if len(righe) < MIN_CALIBRAZIONI:
@@ -127,6 +131,6 @@ def affidabilita(con: duckdb.DuckDBPyConnection) -> dict:
         testo += f": affidabilità {giudizio}"
     if abs(distorsione) >= 3:
         verso = "sovrastimano" if distorsione > 0 else "sottostimano"
-        testo += f". In media le simulazioni {verso} di {abs(distorsione):.1f} punti"
+        testo += f". In media le simulazioni {verso} di {_it(abs(distorsione))} punti"
     return {"n": len(righe), "scarto_medio": round(mae, 1), "distorsione": round(distorsione, 1),
             "giudizio": giudizio, "testo": testo + "."}  # fmt: skip
