@@ -25,9 +25,11 @@ def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        automatica = False
         if percorso_db is None:
             imp = impostazioni()
             percorso, sfondo = imp.db_path, mappa_sfondo or imp.mappa_sfondo
+            automatica = imp.raccolta_automatica
         else:
             percorso, sfondo = percorso_db, mappa_sfondo or "nessuna"
         con = db.connetti(percorso)
@@ -36,7 +38,14 @@ def crea_app(percorso_db: Path | None = None, mappa_sfondo: str | None = None) -
         app.state.mappa_sfondo = sfondo
         app.state.cache_aree = {}
         app.state.cache_elezioni = {}
+        pianificatore = None
+        if automatica:
+            from app.temi import pianificatore as pt
+
+            pianificatore = pt.avvia(con)
         yield
+        if pianificatore:
+            pianificatore.shutdown(wait=False)
         con.close()
 
     app = FastAPI(title="Monitorino", version=VERSIONE, lifespan=lifespan)
