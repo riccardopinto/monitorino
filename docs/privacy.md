@@ -35,6 +35,7 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 | Fornitore | Uso | Dati inviati | Note |
 |---|---|---|---|
 | Anthropic (API Claude) | simulazioni, classificazione, generazione | proposte, contesti aggregati, testi da classificare | verificare termini, conservazione e trasferimenti extra UE |
+| OpenStreetMap Foundation (tile.openstreetmap.org) | sfondo della mappa | il browser dello staff richiede le tile: indirizzo IP, user agent, zona della mappa visualizzata | dalla Fase 1; si disattiva con `MAPPA_SFONDO=nessuna`; rispettare la tile usage policy OSM (uso leggero, attribuzione visibile) |
 
 ## Misure di sicurezza
 
@@ -58,3 +59,10 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 - Nessun dato personale trattato e nessun dato scaricato.
 - Create le tabelle `uso_llm` (con campo `utente`, valorizzato dalla Fase 8), `audit` e `documento`. Quest'ultima ha il campo `testo` destinato alla cancellazione alla `scadenza`.
 - Le librerie frontend sono servite dal server dell'applicazione, così i browser dello staff non contattano CDN di terzi.
+
+### Fase 1 — Mappa e geodati
+
+- Caricati i confini delle circoscrizioni, la corrispondenza civico → sezione elettorale (2017) e i numeri civici georeferenziati (2019). Sono dati pubblici del Comune, sotto licenza CC BY 4.0.
+- Non c'è nessun dato personale: i civici sono indirizzi di edifici, non riferiti a persone. Nel database restano solo i poligoni per sezione e la corrispondenza sezione → circoscrizione; l'elenco dei civici resta solo nei file originali in `data/raw/`.
+- I confini delle sezioni sono stime e lo dichiarano (`area.approssimata`, avviso in mappa).
+- Nuova richiesta esterna: le tile di sfondo OpenStreetMap (vedi "Fornitori"). Si può spegnere con `MAPPA_SFONDO=nessuna`.
