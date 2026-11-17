@@ -22,7 +22,7 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 | # | Trattamento | Dati | Interessati | Base giuridica | Conservazione | Stato |
 |---|---|---|---|---|---|---|
 | T1 | Risultati elettorali per sezione | aggregati pubblici, nessun dato personale | — | da verificare | durata del progetto | non attivo (Fase 2) |
-| T2 | Demografia per area | aggregati statistici pubblici | — | da verificare | durata del progetto | non attivo (Fase 3) |
+| T2 | Demografia per area | aggregati statistici pubblici | — | da verificare | durata del progetto | attivo dalla Fase 3 |
 | T3 | Raccolta news locali | titolo, URL, data, sintesi; nessun testo integrale | persone citate negli articoli | da verificare | da definire | non attivo (Fase 4) |
 | T4 | Raccolta social pubblici | testo senza autore né identificativi, poi solo aggregati | autori dei contenuti pubblici | da verificare | testo ≤ 30 giorni, aggregati per la durata del progetto | non attivo (Fase 4) |
 | T5 | Simulazioni del laboratorio messaggi | proposte, persone sintetiche, risultati aggregati | nessuno (dati sintetici) | da verificare | da definire | non attivo (Fase 5) |
@@ -76,3 +76,11 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 - Le sezioni speciali (ospedali, Cottolengo) hanno pochi votanti. A quel livello i voti di preferenza possono essere molto pochi: valutare con il consulente se nascondere in interfaccia le preferenze delle sezioni sotto una soglia.
 - La classificazione delle liste per area politica (`config/aree_politiche.yaml`) è una scelta analitica dello staff, non un dato ufficiale.
 - I flussi elettorali sono stime ecologiche e l'interfaccia lo dichiara accanto a ogni tabella, insieme all'avvertenza che i dati per area non descrivono i singoli.
+
+### Fase 3 — Demografia
+
+- Caricati dati statistici aggregati: popolazione per circoscrizione del Comune (2025), censimento ISTAT 2021 per sezione di censimento, redditi IRPEF per CAP del MEF (2024). Il trattamento T2 è attivo. Nessun dato su singole persone.
+- **Piccoli numeri**: le sezioni di censimento possono contenere pochissimi residenti. Nel database restano solo le aggregazioni per circoscrizione e per sezione elettorale (centinaia di residenti), non le singole sezioni di censimento. In interfaccia gli indicatori delle sezioni elettorali con meno di 100 residenti non si mostrano. Da valutare con il consulente se la soglia è adeguata.
+- I redditi per area sono stime da una ripartizione statistica e l'interfaccia lo dichiara.
+- I pesi dei segmenti (`segmento_peso`) descrivono quote di gruppi aggregati per circoscrizione. Non contengono dati personali e non vanno usati per selezionare destinatari di annunci politici (Regolamento UE 2024/900). Metodo in `docs/metodo_simulazione.md`.
+- Il grafico demografia/voto riporta sempre l'avvertenza sull'inferenza ecologica.

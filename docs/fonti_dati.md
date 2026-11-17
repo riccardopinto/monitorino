@@ -188,6 +188,97 @@ La classificazione è una **proposta da verificare** dello staff. Regola usata:
 
 Una lista nuova senza voce nel file ferma l'ingest.
 
+### Popolazione per circoscrizione (Comune di Torino, Ufficio di statistica)
+
+| Campo | Valore |
+|---|---|
+| Ente / editore | Città di Torino, Ufficio di statistica |
+| URL | `https://www.comune.torino.it/media/<n>`: 9707, 9708, 9709 (età annuale totale, maschi, femmine), 9692 (genere, usato come controllo), 9735 e 9738 (stranieri per sesso e per età), 9722 (famiglie per tipologia), 9724 (stato civile). Schede su aperto.comune.torino.it |
+| Data di download | 2026-11-17 |
+| Licenza | CC BY 4.0 |
+| Formato | CSV `;`, ASCII; una riga per voce, colonne `circ_1…circ_8` e `residenza_virtuale` (stranieri e genere: una riga per circoscrizione) |
+| Copertura | residenti al 31/12/2025, per circoscrizione |
+| Script | `app/ingest/demografia_comune.py` |
+| Cartella raw | `data/raw/comune_demografia/<data>/` |
+| Tabelle scritte | `demografia` (anno 2025) |
+
+Note:
+- `residenza_virtuale` raccoglie i residenti senza fissa dimora iscritti a un indirizzo fittizio (4.375 persone). Conta nel totale cittadino ma non appartiene a nessuna circoscrizione, quindi in `demografia` sta con `area_id = -1`.
+- Controlli superati: età = maschi + femmine = file per genere in ogni circoscrizione; stranieri per età = stranieri per sesso. Totale: 863.249 residenti.
+- Sotto la circoscrizione il Comune non pubblica dati recenti: la popolazione per zona statistica si ferma al 2006.
+
+### Censimento permanente ISTAT 2021 per sezione di censimento
+
+| Campo | Valore |
+|---|---|
+| Ente / editore | ISTAT |
+| URL | variabili: https://esploradati.istat.it/databrowser/DWL/PERMPOP/SUBCOM/Dati_regionali_2021.zip (file `R01_indicatori_2021_sezioni.xlsx`, tracciato `TRACCIATO FILE REGIONALI.xlsx`); geometrie: https://www.istat.it/storage/cartografia/basi_territoriali/2021/R01_21.zip |
+| Data di download | 2026-11-17 |
+| Licenza | CC BY 4.0 |
+| Formato | XLSX per regione; shapefile `SHP/R01_21_WGS84.shp` (malgrado il nome, in EPSG:32632) |
+| Copertura | 4.292 sezioni di censimento abitate a Torino (6.916 in tutto), 848.748 residenti al 31/12/2021 |
+| Script | `app/ingest/censimento_istat.py` |
+| Cartella raw | `data/raw/istat_censimento_2021/<data>/`, `data/raw/istat_basi_territoriali/<data>/` |
+| Tabelle scritte | `demografia` (anno 2021) per circoscrizioni e sezioni elettorali |
+
+Variabili (prefisso `cens_`, dal tracciato ISTAT):
+- popolazione: `cens_pop` (P1), per sesso (P2, P3), per classi quinquennali `cens_eta_00_04` … `cens_eta_75_piu` (P14-P29), anche per sesso (`cens_m_eta_*`, `cens_f_eta_*`);
+- istruzione della popolazione di 9 anni e più (P83, P86-P90): `cens_istr_nessuno`, `_elementare`, `_media`, `_diploma`, `_terziario`;
+- `cens_occupati_15_64` (P101), `cens_stranieri` (ST1), famiglie `cens_famiglie` e per numero di componenti (PF1, PF3-PF8), abitazioni ed edifici (A2, A8, E3).
+
+Aggregazione:
+- **per circoscrizione** con il codice ISTAT `COM_ASC1`: le aree sub-comunali di Torino sono le circoscrizioni;
+- **per sezione elettorale** con il punto interno di ogni sezione di censimento che cade nei confini approssimati delle sezioni elettorali (Fase 1). I punti fuori dai confini vanno alla sezione più vicina.
+- Esito: la circoscrizione ISTAT e quella della sezione elettorale coincidono per il 100% della popolazione. Le 4.044 sezioni di censimento con popolazione coprono 902 delle 912 sezioni elettorali con confine. Dettaglio in `data/processed/censimento_sezioni_elettorali.csv`.
+- Nota tecnica: leggendo lo shapefile con un sottoinsieme di colonne, pyogrio restituisce POP21 a zero; lo script legge tutte le colonne.
+
+### Tavole comunali IstatData (Torino)
+
+| Campo | Valore |
+|---|---|
+| Ente / editore | ISTAT, IstatData (SDMX) |
+| URL | `https://esploradati.istat.it/SDMXWS/rest/data/IT1,DF_DCSS_ISTR_LAV_PEN_2_TV_3,1.0/A.001272........` (popolazione di 15 anni e più per condizione professionale ed età) e `…/IT1,DF_DCSS_EMPLP_1_COM,1.0/A.001272.....` (occupati per posizione nella professione), formato CSV SDMX |
+| Data di download | 2026-11-17 |
+| Licenza | CC BY 4.0 |
+| Copertura | Torino; condizione professionale 2018-2024 (si usa il 2024); posizione nella professione 2021 |
+| Tabelle scritte | `demografia` con `area_id = 0` (comune intero): `istat_cond_<condizione>_eta_<classe>`, `istat_occupati_dipendenti`, `_indipendenti`, `_totale` |
+
+Codici: condizione 1 occupato, 12 in cerca di occupazione, 24 percettore di pensione, 5 studente, 4 casalinga/o, 7 altra condizione, 99 totale; classi 15-24, 25-49, 50-64, 65+. Posizione: 9 dipendenti, 22 indipendenti (24,8% degli occupati nel 2021).
+
+### Redditi IRPEF per CAP (MEF - Dipartimento delle Finanze)
+
+| Campo | Valore |
+|---|---|
+| Ente / editore | MEF - Dipartimento delle Finanze (citare così) |
+| URL | https://www1.finanze.gov.it/finanze/analisi_stat/public/v_4_0_0/contenuti/Redditi_e_principali_variabili_IRPEF_su_base_subcomunale_CSV_2024.zip |
+| Data di download | 2026-11-17 |
+| Licenza | open data MEF, da verificare la licenza esatta |
+| Formato | CSV `;`, una riga per CAP; alcune classi di reddito sono oscurate (vuote) per riservatezza: si usano solo i totali |
+| Copertura | anno d'imposta 2024, 33 CAP di Torino, 641.857 contribuenti |
+| Script | `app/ingest/redditi_mef.py` |
+| Tabelle scritte | `demografia` (anno 2024): `mef_contribuenti`, `mef_reddito_complessivo_n`, `mef_reddito_complessivo_eur`, `mef_reddito_imponibile_eur`, `mef_imposta_netta_eur`, `mef_lavoro_dipendente_eur`, `mef_pensione_eur` |
+
+**Ripartizione CAP → aree (stima)**. I confini dei CAP non sono pubblicati.
+- I civici georeferenziati del Comune (2019, con CAP) si assegnano alle sezioni di censimento.
+- La popolazione ISTAT 2021 di ogni sezione si divide tra i CAP in proporzione ai suoi civici. Una sezione senza civici prende il CAP del civico più vicino.
+- Ogni variabile di un CAP si distribuisce sulle circoscrizioni e sulle sezioni elettorali in proporzione a quella popolazione.
+- Il totale cittadino (`area_id = 0`) è la somma esatta dei CAP e la ripartizione lo conserva (test).
+- I 33 CAP del file coincidono con quelli dei civici.
+
+Limiti: si assume che contribuenti e redditi di un CAP siano distribuiti come i residenti, e il numero di civici approssima la popolazione dentro una sezione di censimento. I valori per area sono stime, segnalate come tali nell'interfaccia.
+
+### Indicatori derivati
+
+Si calcolano in `app/analysis/demografia.py` come rapporti tra somme, così il valore cittadino è coerente con quello delle aree:
+- **indice di vecchiaia**: residenti 65+ ogni 100 residenti 0-14;
+- **quota stranieri**;
+- **quota con titolo terziario**: sui residenti di 9 anni e più, l'unica base disponibile per sezione;
+- **tasso di occupazione 15-64**: censimento 2021;
+- **reddito medio dichiarato**: reddito complessivo / numero di dichiaranti, MEF 2024;
+- **componenti per famiglia**: censimento 2021.
+
+Circoscrizioni e città usano i dati del Comune 2025 dove esistono. Le sezioni elettorali usano sempre il censimento 2021, e il loro confronto cittadino usa la stessa fonte e lo stesso anno. Per le sezioni con meno di 100 residenti gli indicatori non si mostrano.
+
 ## Flussi elettorali stimati
 
 `app/analysis/elezioni.py::flussi` stima la matrice di transizione tra le aree politiche di due elezioni, con il "non voto" come categoria aggiuntiva.
