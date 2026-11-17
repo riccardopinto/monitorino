@@ -93,8 +93,11 @@ CREATE TABLE IF NOT EXISTS totale_ufficiale (
     fonte       VARCHAR NOT NULL
 );
 
+-- Solo conteggi additivi (persone, famiglie, contribuenti, euro): gli indicatori si calcolano.
+-- area_id = -1: residenti in "residenza virtuale" (senza fissa dimora), che il Comune non
+-- assegna a nessuna circoscrizione ma conta nel totale cittadino.
 CREATE TABLE IF NOT EXISTS demografia (
-    area_id     INTEGER NOT NULL,           -- area.id
+    area_id     INTEGER NOT NULL,           -- area.id, oppure -1 (residenza virtuale)
     anno        INTEGER NOT NULL,
     variabile   VARCHAR NOT NULL,
     valore      DOUBLE,
@@ -132,12 +135,14 @@ CREATE TABLE IF NOT EXISTS segmento (
     definizione JSON NOT NULL               -- fascia_eta, condizione, area_di_voto
 );
 
+-- variante: base elettorale dei pesi per area di voto (comunali | nazionali), Fase 3.
 CREATE TABLE IF NOT EXISTS segmento_peso (
     segmento_id INTEGER NOT NULL,           -- segmento.id
     area_id     INTEGER NOT NULL,           -- area.id
     anno        INTEGER NOT NULL,
+    variante    VARCHAR NOT NULL,
     peso        DOUBLE NOT NULL CHECK (peso BETWEEN 0 AND 1),
-    PRIMARY KEY (segmento_id, area_id, anno)
+    PRIMARY KEY (segmento_id, area_id, anno, variante)
 );
 
 CREATE SEQUENCE IF NOT EXISTS seq_simulazione;
@@ -267,6 +272,7 @@ def crea_schema(con: duckdb.DuckDBPyConnection) -> None:
     _ricrea_se_vuota(con, "risultato", "gruppo")  # Fase 2
     _ricrea_se_vuota(con, "elezione", "nome")  # Fase 2
     _ricrea_se_vuota(con, "lista_alias", "tipo")  # Fase 2
+    _ricrea_se_vuota(con, "segmento_peso", "variante")  # Fase 3
     con.execute(SCHEMA)
 
 

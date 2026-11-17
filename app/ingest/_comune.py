@@ -16,21 +16,34 @@ DIR_PROCESSED = RADICE / "data" / "processed"
 USER_AGENT = "monitorino-ingest/0.1"
 
 
-def scarica(url: str, fonte: str, *, giorno: date | None = None, dir_raw: Path = DIR_RAW) -> Path:
+def scarica(
+    url: str,
+    fonte: str,
+    *,
+    giorno: date | None = None,
+    dir_raw: Path = DIR_RAW,
+    nome_file: str | None = None,
+    intestazioni: dict[str, str] | None = None,
+) -> Path:
     """Scarica ``url`` in ``data/raw/<fonte>/<AAAA-MM-GG>/``.
 
     Se il file del giorno esiste già non lo riscarica: rieseguire l'ingest nello stesso
     giorno lavora sugli stessi originali. I file in data/raw non si modificano mai.
+    ``nome_file`` serve per gli URL senza un nome utile (es. .../media/9707).
     """
     giorno = giorno or date.today()
     cartella = dir_raw / fonte / giorno.isoformat()
-    destinazione = cartella / Path(urlparse(url).path).name
+    destinazione = cartella / (nome_file or Path(urlparse(url).path).name)
     if destinazione.exists() and destinazione.stat().st_size > 0:
         return destinazione
     cartella.mkdir(parents=True, exist_ok=True)
     temporaneo = destinazione.with_suffix(destinazione.suffix + ".parziale")
     with httpx.stream(
-        "GET", url, follow_redirects=True, timeout=120, headers={"User-Agent": USER_AGENT}
+        "GET",
+        url,
+        follow_redirects=True,
+        timeout=300,
+        headers={"User-Agent": USER_AGENT, **(intestazioni or {})},
     ) as risposta:
         risposta.raise_for_status()
         with temporaneo.open("wb") as f:
