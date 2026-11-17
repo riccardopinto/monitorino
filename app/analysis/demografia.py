@@ -185,12 +185,18 @@ def _filtro_aree(livello: str, fonte: str) -> tuple[str, str]:
     return "a.codice", f"a.tipo = '{livello}'"
 
 
-def valori(con: duckdb.DuckDBPyConnection, chiave: str, livello: str) -> pd.DataFrame:
-    """Valore dell'indicatore per area: colonne area, valore, numeratore, denominatore."""
+def valori(
+    con: duckdb.DuckDBPyConnection, chiave: str, livello: str, come: str | None = None
+) -> pd.DataFrame:
+    """Valore dell'indicatore per area: colonne area, valore, numeratore, denominatore.
+
+    ``come``: usa la formula (fonte e anno) di un altro livello. Serve per il confronto
+    cittadino di una sezione: valori(con, k, "citta", come="sezione") usa i dati ISTAT 2021.
+    """
     ind = INDICATORI[chiave]
-    if livello not in ind.formule:
-        raise ValueError(f"{ind.nome}: livello {livello} non disponibile")
-    f = ind.formule[livello]
+    if (come or livello) not in ind.formule:
+        raise ValueError(f"{ind.nome}: livello {come or livello} non disponibile")
+    f = ind.formule[come or livello]
     codice, condizione = _filtro_aree(livello, f.fonte)
     num = list(f.numeratore)
     den = list(f.denominatore)
@@ -253,6 +259,31 @@ def piramide(con: duckdb.DuckDBPyConnection, livello: str, codice: str = "Torino
     df = pd.DataFrame.from_dict(out, orient="index").sort_index()
     df.index = [f"{c}-{c + 4}" if c < 100 else "100+" for c in df.index]
     return df.reset_index(names="classe"), COMUNE, 2025
+
+
+def piramide_istat(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """Piramide cittadina dal censimento 2021 (somma delle circoscrizioni), per confrontarla
+    con quella delle sezioni elettorali, che hanno solo dati ISTAT."""
+    righe = con.execute(
+        "SELECT variabile, sum(valore) FROM demografia d JOIN area a ON a.id = d.area_id "
+        "WHERE a.tipo = 'circoscrizione' AND d.fonte = ? "
+        "AND (variabile LIKE 'cens_m_eta_%' OR variabile LIKE 'cens_f_eta_%') GROUP BY 1",
+        [ISTAT],
+    ).fetchall()
+    out: dict[str, dict[str, float]] = {}
+    for var, v in righe:
+        sesso = "maschi" if var.startswith("cens_m") else "femmine"
+        classe = var.split("_eta_")[1].replace("_piu", "+").replace("_", "-")
+        out.setdefault(classe, {"maschi": 0.0, "femmine": 0.0})[sesso] += v
+    df = pd.DataFrame.from_dict(out, orient="index").reset_index(names="classe")
+    return df.sort_values("classe").reset_index(drop=True)
+
+
+SOGLIA_RESIDENTI_SEZIONE = 100
+
+
+def popolazione_sezioni(con: duckdb.DuckDBPyConnection) -> pd.Series:
+    return valori(con, "popolazione", "sezione").set_index("area")["valore"]
 
 
 # --- pesi dei segmenti ------------------------------------------------------
