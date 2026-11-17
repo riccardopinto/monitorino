@@ -128,6 +128,79 @@ Il Comune non pubblica i confini delle sezioni elettorali (verificato il 2026-11
 - 184 sezioni risultano in più pezzi (MultiPolygon), soprattutto dove i civici di sezioni diverse si alternano lungo la stessa via.
 - I confini servono a colorare la mappa, non a calcoli di precisione. I totali per circoscrizione si fanno sempre da `sezione_area`, mai da intersezioni geometriche.
 
-<!-- Fase 2: risultati elettorali per sezione, totali di controllo Eligendo -->
+### Risultati elettorali per sezione (Comune di Torino)
+
+| Campo | Valore |
+|---|---|
+| Ente / editore | Città di Torino, Servizi elettorali |
+| URL | https://elezioni.comune.torino.it (archivio: `/risultati/`; file in `/<anno>/<consultazione>/finali/`) |
+| Data di download | 2026-11-17 |
+| Licenza | non indicata sul sito; dati pubblici del Comune. Da verificare prima di ripubblicarli |
+| Formato | CSV "Riepilogo per sezioni", separatore `;`, UTF-8 (alcuni file cp1252); consigli circoscrizionali in `circ1…8.zip` |
+| Copertura | 919 sezioni per consultazione: comunali 2016 e 2021 (1° turno, ballottaggio, consigli circoscrizionali), Camera e Senato 2022, europee 2019 e 2024, regionali 2024 |
+| Script | `app/ingest/elezioni/` (`consultazioni.py` elenca i file; `uv run python -m app.ingest.elezioni [chiave]`) |
+| Cartella raw | `data/raw/elezioni_<consultazione>_<anno>/<data>/` |
+| Tabelle scritte | `elezione`, `affluenza`, `risultato`, `sezione_area` (per anno), `lista_alias`, `totale_ufficiale` |
+
+Note sul formato:
+- Prima della riga d'intestazione ci sono alcune righe di preambolo: titolo, "LISTA: N - nome" nei file di preferenze, "SCRUTINATE n SEZIONI SU m". L'intestazione inizia con "Sezione": prima le colonne fisse, poi per ogni soggetto numero, nome ed eventuali etichette. Ogni riga di sezione ha le colonne fisse e poi i voti, separati da un campo vuoto. Spesso c'è una riga finale "TOTALE".
+- Varianti gestite dal parser (`riepilogo.py`): colonna "Scrutinata" presente o no; valori con o senza virgolette (2024); due valori per candidato (voti e "voti solo sindaco/presidente/candidato": conta il primo); colonne fisse con nomi diversi tra anni.
+- I nomi delle liste sono troncati a 30 caratteri.
+- Le preferenze a zero non si salvano (assenza = 0). In `risultato.gruppo` c'è la lista del candidato, con il nome del file delle liste.
+- I consigli circoscrizionali hanno solo liste e preferenze: il presidente lo elegge il consiglio, quindi non ci sono voti per il presidente.
+- La corrispondenza sezione → circoscrizione si prende dai file dei risultati di ogni anno. Pochissime sezioni cambiano circoscrizione tra un anno e l'altro (da 1 a 3).
+- Anomalie delle fonti, lasciate come sono:
+  - nei file preferenze 2024 la riga TOTALE riporta gli iscritti raddoppiati (non usata);
+  - nel file delle liste della Camera 2022 (collegio 1) la sezione 724 è marcata "N" (non scrutinata) ma ha i voti.
+  - Le sezioni speciali (ospedali) hanno votanti ma 0 iscritti.
+
+### Totali ufficiali di controllo (Ministero dell'Interno, Eligendo)
+
+| Campo | Valore |
+|---|---|
+| Ente / editore | Ministero dell'Interno, Dipartimento per gli Affari interni e territoriali |
+| URL | https://dait.interno.gov.it/documenti/opendata/<tipo>/<tipo>-AAAAMMGG.zip (indice: https://elezionistorico.interno.gov.it/eligendo/opendata.php) |
+| Data di download | 2026-11-17 |
+| Licenza | open data del Ministero, da verificare la licenza esatta |
+| Formato | zip con CSV/TXT per comune di tutta Italia, separatore `;`; i ballottaggi comunali stanno nello stesso file del 1° turno (colonna TURNO) |
+| Copertura | tutte le consultazioni caricate tranne i consigli circoscrizionali |
+| Script | `app/ingest/elezioni/eligendo.py` |
+| Cartella raw | `data/raw/eligendo/<data>/` |
+| Tabelle scritte | `totale_ufficiale` (solo i totali di Torino) |
+
+Controllo (`eligendo.differenze`): iscritti, votanti e bianche si confrontano con la somma delle sezioni. Liste e candidati si confrontano come insiemi di valori ordinati, perché i nomi sono scritti in modo diverso nei due file; se ogni voce coincide, i due elenchi di numeri sono identici. L'ingest si ferma se c'è una differenza non documentata in `config/scostamenti_noti.yaml`.
+
+Esito al 2026-11-17: coincidenza esatta per tutte le consultazioni, con due eccezioni documentate e accettate dallo staff:
+- comunali 2021: quattro liste differiscono di 1 voto, con somma zero (Noi Cittadini, Partito Animalista, Italexit, Futura per i Beni Comuni);
+- Camera 2022: 1 votante in più nella somma per sezione (409.351 contro 409.350).
+
+I file Eligendo contengono luogo e data di nascita dei candidati: non vengono salvati.
+
+### Classificazione politica delle liste
+
+`config/aree_politiche.yaml` assegna a ogni lista (e a ogni candidato sindaco o presidente) una **forza politica** normalizzata, confrontabile tra elezioni, e un'**area politica**: centrosinistra, centrodestra, M5S, civici e terzo polo, altro. Sono le stesse aree di `config/segmenti.yaml`, con "altro" al posto dell'astensione, che si ricava dall'affluenza.
+
+La classificazione è una **proposta da verificare** dello staff. Regola usata:
+- comunali e regionali: la lista prende l'area della coalizione del candidato collegato;
+- coalizioni minori: "civici e terzo polo" se guidate da una civica, "altro" se guidate da un partito fuori dai due poli e dal M5S;
+- politiche: coalizioni nazionali del 2022;
+- europee: collocazione nazionale del partito.
+
+Una lista nuova senza voce nel file ferma l'ingest.
+
+## Flussi elettorali stimati
+
+`app/analysis/elezioni.py::flussi` stima la matrice di transizione tra le aree politiche di due elezioni, con il "non voto" come categoria aggiuntiva.
+
+**Metodo**: regressione ecologica di Goodman con vincoli. Per ogni sezione si calcolano le quote sugli iscritti (aree politiche e non voto) nelle due elezioni. Si cerca la matrice B, con valori tra 0 e 1 e righe che sommano a 1, che minimizza lo scarto quadratico tra le quote di arrivo e quelle previste (quote di partenza × B), pesato per gli iscritti. Il calcolo usa `scipy.optimize` (SLSQP).
+
+**Sezioni usate**: quelle presenti in entrambe le elezioni con iscritti > 0 e variazione degli iscritti sotto il 10%. Restano escluse le sezioni ospedaliere e quelle ridisegnate. Per una circoscrizione si usano le sue sezioni nell'anno dell'elezione di arrivo. Servono almeno 20 sezioni.
+
+**Limiti, da dichiarare sempre**:
+- È una stima su dati aggregati (inferenza ecologica): non descrive il comportamento di nessun elettore.
+- L'ipotesi è che i comportamenti siano simili tra sezioni; dove non lo sono, la stima si distorce.
+- Il non voto include bianche e nulle.
+- Tra le due elezioni la popolazione degli iscritti cambia (decessi, nuovi elettori, trasferimenti).
+- L'R² per colonna indica quanto la stima spiega la variabilità tra sezioni; valori bassi o negativi rendono inaffidabile quella colonna.
 <!-- Fase 3: popolazione per circoscrizione, censimento ISTAT, redditi IRPEF per CAP -->
 <!-- Fase 4: feed RSS delle testate locali, fonti social con API ufficiali -->

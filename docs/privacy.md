@@ -66,3 +66,13 @@ Documento di lavoro per preparare la valutazione d'impatto (DPIA, art. 35 GDPR).
 - Non c'è nessun dato personale: i civici sono indirizzi di edifici, non riferiti a persone. Nel database restano solo i poligoni per sezione e la corrispondenza sezione → circoscrizione; l'elenco dei civici resta solo nei file originali in `data/raw/`.
 - I confini delle sezioni sono stime e lo dichiarano (`area.approssimata`, avviso in mappa).
 - Nuova richiesta esterna: le tile di sfondo OpenStreetMap (vedi "Fornitori"). Si può spegnere con `MAPPA_SFONDO=nessuna`.
+
+### Fase 2 — Storico elettorale
+
+- Caricati i risultati per sezione elettorale di 11 consultazioni (2016-2024) dal sito del Comune, e i totali comunali dagli open data del Ministero dell'Interno. Il trattamento T1 è attivo.
+- Sono dati aggregati: l'unità minima è la sezione, circa 750 iscritti. Nessun dato su singoli elettori.
+- Si salvano i nomi dei candidati (sindaco, presidente, consiglieri, uninominali) e i voti di preferenza per sezione. Sono dati resi pubblici dalle liste elettorali e dagli uffici elettorali, ma riguardano persone fisiche, anche avversari politici: vanno usati solo per l'analisi dei risultati. La base giuridica è da verificare con il consulente.
+- I file del Ministero contengono anche data e luogo di nascita dei candidati: si leggono solo i totali e quei dati non si salvano.
+- Le sezioni speciali (ospedali, Cottolengo) hanno pochi votanti. A quel livello i voti di preferenza possono essere molto pochi: valutare con il consulente se nascondere in interfaccia le preferenze delle sezioni sotto una soglia.
+- La classificazione delle liste per area politica (`config/aree_politiche.yaml`) è una scelta analitica dello staff, non un dato ufficiale.
+- I flussi elettorali sono stime ecologiche e l'interfaccia lo dichiara accanto a ogni tabella, insieme all'avvertenza che i dati per area non descrivono i singoli.
